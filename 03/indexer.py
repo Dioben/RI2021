@@ -22,37 +22,33 @@ def process_file(file,delimiter, relevant_columns):#DESCRIPTION: LOADS FILE, GET
 
     current_block =0
     current_items = []
-    postinglist = {}
     for item in reader:
-        uniquewordsindoc = set()
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
             #split text, add individual words
             words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER
-            uniquewordsindoc.update(words)
             current_items.extend( [(ps.stem(word.lower()),item[headerdict["review_id"]])for word in words if word!=""] ) 
-            if psutil.virtual_memory().percent<=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE #TODO: BAD CRITERIA
-                outputfile= f"blockdump{current_block}.pickle"
-                f = open(outputfile,"wb") #TODO: SHOULD  WRITE TERM->IDS
-                current_items = sort_terms(current_items)
-                f.write(pickle.dumps(current_items))
-                f.close()
+            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
+                dump_into_file(f"blockdump{current_block}.pickle",current_items)
                 current_items = []
                 current_block+=1
-        for x in uniquewordsindoc:
-            if x in postinglist:
-                postinglist[x]+=1
-            else:
-                postinglist[x]=1
 
-    return postinglist
+    if current_items:
+        dump_into_file(f"blockdump{current_block}.pickle",current_items)
+    return 
 
+def dump_into_file(outputfile,current_items):
+    f = open(outputfile,"wb") #TODO: SHOULD  WRITE TERM->IDS
+    current_items = sort_terms(current_items)
+    alternate_structure_items = restructure_as_map(current_items)
+    f.write(pickle.dumps(alternate_structure_items))
+    f.close()
 
 def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
     return sorted(array,key=lambda x: (x[0],x[1]))
 
-'''
-def generate_final_index(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO (TERMS,#DOC)->DOC_SET
+
+def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_SET
     current = ""
     postlingslist= set()
     index = OrderedDict()
@@ -63,7 +59,7 @@ def generate_final_index(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO (TERMS,#D
     for term,id in ordered:
         if current!=term:
             if current!="":
-                index[(current,len(postlingslist))]=postlingslist #save
+                index[current]=postlingslist #save
             #reset
             current = term
             postlingslist= set()
@@ -71,10 +67,10 @@ def generate_final_index(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO (TERMS,#D
         postlingslist.add(id)
 
     return index
-'''
+
+
 if __name__=="__main__":
     f = gzip.open("amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz","rt")
     relevant_columns= ["product_title","review_headline","review_body"]
     postinglist = process_file(f,"\t",relevant_columns)
     f.close()
-    print(postinglist)
