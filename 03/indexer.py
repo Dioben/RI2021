@@ -31,7 +31,7 @@ def process_file(file,delimiter, relevant_columns):#DESCRIPTION: LOADS FILE, GET
             words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER
             uniquewordsindoc.update(words)
             current_items.extend( [(ps.stem(word.lower()),item[headerdict["review_id"]])for word in words if word!=""] ) 
-            if psutil.virtual_memory().percent<=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE #TODO: BAD CRITERIA
+            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
                 outputfile= f"blockdump{current_block}.pickle"
                 f = open(outputfile,"wb") #TODO: SHOULD  WRITE TERM->IDS
                 current_items = sort_terms(current_items)
