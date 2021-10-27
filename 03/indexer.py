@@ -28,7 +28,7 @@ def process_file(file,delimiter, relevant_columns):#DESCRIPTION: LOADS FILE, GET
             #split text, add individual words
             words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER
             current_items.extend( [(ps.stem(word.lower()),item[headerdict["review_id"]])for word in words if word!=""] ) 
-            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
+            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE #TODO SWAP FOR TOKEN NUMBER OR MEMORY THAT ARRAY IS USING
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
                 current_items = []
                 current_block+=1
