@@ -1,12 +1,12 @@
 import csv
 import re
+import gc
 import sys
 import gzip
 import psutil
 from nltk.stem import PorterStemmer
 import pickle 
 import argparse
-from typing import OrderedDict#TODO: look into whether this is necessary
 from support import *
 
 MEM_LIMIT_PERCENT=30
@@ -28,8 +28,10 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
             #split text, add individual words
             words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER, consider decompressing list comprehension for better code and supporting combo keywords
             current_items.extend( [(stemmer.stem(word.lower()),item[headerdict["review_id"]])for word in words if len(word)>=min_length and word not in stopwords] ) 
-            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE #TODO SWAP FOR TOKEN NUMBER OR MEMORY THAT ARRAY IS USING
+            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
+                del current_items
+                gc.collect() #clear memory
                 current_items = []
                 current_block+=1
 
@@ -51,7 +53,7 @@ def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
 def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_SET
     current = ""
     postlingslist= set()
-    index = OrderedDict()
+    index = {}
     """"
     if term is same add to current ID set, add +1
     when term changes save progreess
