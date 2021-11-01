@@ -4,15 +4,18 @@ import sys
 import gzip
 import psutil
 from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
 import pickle 
-
+import argparse
 from typing import OrderedDict
 
 MEM_LIMIT_PERCENT=30
 csv.field_size_limit(sys.maxsize)
 
-def process_file(file,delimiter, relevant_columns):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
+
+def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
     #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES
+    #TODO: STEMMER SWAPOUT
     reader = csv.reader(file,delimiter=delimiter)
     ps = PorterStemmer()
 
@@ -27,7 +30,7 @@ def process_file(file,delimiter, relevant_columns):#DESCRIPTION: LOADS FILE, GET
             text = item[headerdict[column_name]]
             #split text, add individual words
             words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER
-            current_items.extend( [(ps.stem(word.lower()),item[headerdict["review_id"]])for word in words if word!=""] ) 
+            current_items.extend( [(ps.stem(word.lower()),item[headerdict["review_id"]])for word in words if len(word)>=min_length and word not in stopwords] ) 
             if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE #TODO SWAP FOR TOKEN NUMBER OR MEMORY THAT ARRAY IS USING
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
                 current_items = []
@@ -69,8 +72,32 @@ def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_
     return index
 
 
+class UselessStemmer():
+    def stem(word):
+        return word
+
+
 if __name__=="__main__":
+    parser= argparse.ArgumentParser()
+    #length filter, default 4
+    parser.add_argument("--lenfilter",help="Character length filter, 0 means disabled",type=int,default=4)
+
+    #stopword filter
+    parser.add_argument("--stopwords",help="stopword source, 'default' uses default list, alternatively you can use a file path to a csv file with stopwords"\
+                                        , default="default")
+    parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
+
+    #stemmer
+    parser.add_argument('--stemmer', dest='feature', action='store_true')
+    parser.add_argument('--no-stemmer', dest='feature', action='store_false')
+    parser.set_defaults(feature=True)
+
+    args = parser.parse_args()
+
+    
     f = gzip.open("amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz","rt")
-    relevant_columns= ["product_title","review_headline","review_body"]
-    postinglist = process_file(f,"\t",relevant_columns)
+    relevant_columns= ["review_headline","review_body"]
+
+
+    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter)
     f.close()
