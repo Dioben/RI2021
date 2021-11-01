@@ -15,7 +15,7 @@ csv.field_size_limit(sys.maxsize)
 
 
 def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
-    #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES
+    #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES, literally the tokenizer apparently
     reader = csv.reader(file,delimiter=delimiter)
     #BUILD HEADER
     header = reader.__next__()
@@ -27,8 +27,13 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
             #split text, add individual words
-            words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER, consider decompressing list comprehension for better code and supporting combo keywords
-            current_items.extend( [(stemmer.stem(word.lower()),item[headerdict["review_id"]])for word in words if len(word)>=min_length and word not in stopwords] ) 
+            words = re.split("[^a-zA-Z0-9]",text)
+            for word in words: #decompressed to support combo keywords and the like in the future
+                if len(word)<min_length:
+                    continue
+                if word in stopwords:
+                    continue
+                current_items.append((stemmer.stem(word.lower()),item[headerdict["review_id"]]))
             if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
                 del current_items
