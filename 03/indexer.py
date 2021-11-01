@@ -8,6 +8,7 @@ from nltk.stem import PorterStemmer
 import pickle 
 import argparse
 from support import *
+from time import time
 
 MEM_LIMIT_PERCENT=30
 csv.field_size_limit(sys.maxsize)
@@ -109,6 +110,8 @@ if __name__=="__main__":
     else:
         stemmer=UselessStemmer()
 
-
+    timedelta = time()
     postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer)
+    timedelta = time()-timedelta
+    print(timedelta)
     f.close()
