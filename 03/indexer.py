@@ -4,10 +4,10 @@ import sys
 import gzip
 import psutil
 from nltk.stem import PorterStemmer
-from nltk.corpus import stopwords as default_stopwords #TODO: only import if necessary
 import pickle 
 import argparse
-from typing import OrderedDict
+from typing import OrderedDict#TODO: look into whether this is necessary
+from support import *
 
 MEM_LIMIT_PERCENT=30
 csv.field_size_limit(sys.maxsize)
@@ -15,7 +15,6 @@ csv.field_size_limit(sys.maxsize)
 
 def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
     #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES
-    #TODO: STEMMER SWAPOUT
     reader = csv.reader(file,delimiter=delimiter)
     #BUILD HEADER
     header = reader.__next__()
@@ -39,7 +38,7 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
     return 
 
 def dump_into_file(outputfile,current_items):
-    f = open(outputfile,"wb") #TODO: SHOULD  WRITE TERM->IDS
+    f = open(outputfile,"wb")
     current_items = sort_terms(current_items)
     alternate_structure_items = restructure_as_map(current_items)
     f.write(pickle.dumps(alternate_structure_items))
@@ -70,10 +69,6 @@ def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_
     return index
 
 
-class UselessStemmer():
-    def stem(word):
-        return word
-
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
@@ -100,8 +95,13 @@ if __name__=="__main__":
     f = gzip.open(args.source,"rt")
     relevant_columns= ["review_headline","review_body"]
 
+    if args.stopwords=="default":
+        from nltk.corpus import stopwords
+    else:
+        stopword_file = open(args.stopwords,"r")    
+        stopwords = set(stopword_file.read().split(args.stopword_delimiter))
+        stopword_file.close()
 
-    #TODO: STOPWORDS
     if args.stem:
         stemmer = PorterStemmer()
     else:
