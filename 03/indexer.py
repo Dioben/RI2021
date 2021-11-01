@@ -4,7 +4,7 @@ import sys
 import gzip
 import psutil
 from nltk.stem import PorterStemmer
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords as default_stopwords #TODO: only import if necessary
 import pickle 
 import argparse
 from typing import OrderedDict
@@ -17,8 +17,6 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
     #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES
     #TODO: STEMMER SWAPOUT
     reader = csv.reader(file,delimiter=delimiter)
-    ps = PorterStemmer()
-
     #BUILD HEADER
     header = reader.__next__()
     headerdict = {header[i]:i for i in range(len(header))}
@@ -29,8 +27,8 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
             #split text, add individual words
-            words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER
-            current_items.extend( [(ps.stem(word.lower()),item[headerdict["review_id"]])for word in words if len(word)>=min_length and word not in stopwords] ) 
+            words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER, consider decompressing list comprehension for better code and supporting combo keywords
+            current_items.extend( [(stemmer.stem(word.lower()),item[headerdict["review_id"]])for word in words if len(word)>=min_length and word not in stopwords] ) 
             if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE #TODO SWAP FOR TOKEN NUMBER OR MEMORY THAT ARRAY IS USING
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
                 current_items = []
@@ -79,6 +77,7 @@ class UselessStemmer():
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
+
     #length filter, default 4
     parser.add_argument("--lenfilter",help="Character length filter, 0 means disabled",type=int,default=4)
 
@@ -88,16 +87,26 @@ if __name__=="__main__":
     parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
 
     #stemmer
-    parser.add_argument('--stemmer', dest='feature', action='store_true')
-    parser.add_argument('--no-stemmer', dest='feature', action='store_false')
+    parser.add_argument('--stemmer', dest='stem', action='store_true')
+    parser.add_argument('--no-stemmer', dest='stem', action='store_false')
     parser.set_defaults(feature=True)
+
+    #input file
+    parser.add_argument("--source",help="Source file, please provide gzip compatible files", default="amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz")
 
     args = parser.parse_args()
 
-    
-    f = gzip.open("amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz","rt")
+
+    f = gzip.open(args.source,"rt")
     relevant_columns= ["review_headline","review_body"]
 
 
-    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter)
+    #TODO: STOPWORDS
+    if args.stem:
+        stemmer = PorterStemmer()
+    else:
+        stemmer=UselessStemmer()
+
+
+    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer)
     f.close()
