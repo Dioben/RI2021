@@ -1,20 +1,21 @@
 import csv
 import re
+import gc
 import sys
 import gzip
 import psutil
 from nltk.stem import PorterStemmer
 import pickle 
 import argparse
-from typing import OrderedDict#TODO: look into whether this is necessary
 from support import *
+from time import time
 
 MEM_LIMIT_PERCENT=30
 csv.field_size_limit(sys.maxsize)
 
 
 def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
-    #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES
+    #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES, literally the tokenizer apparently
     reader = csv.reader(file,delimiter=delimiter)
     #BUILD HEADER
     header = reader.__next__()
@@ -26,10 +27,17 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
             #split text, add individual words
-            words = re.split("[^a-zA-Z0-9]",text)#TODO: BETTER TOKENIZER, consider decompressing list comprehension for better code and supporting combo keywords
-            current_items.extend( [(stemmer.stem(word.lower()),item[headerdict["review_id"]])for word in words if len(word)>=min_length and word not in stopwords] ) 
-            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE #TODO SWAP FOR TOKEN NUMBER OR MEMORY THAT ARRAY IS USING
+            words = re.split("[^a-zA-Z0-9]",text)
+            for word in words: #decompressed to support combo keywords and the like in the future
+                if len(word)<min_length:
+                    continue
+                if word in stopwords:
+                    continue
+                current_items.append((stemmer.stem(word.lower()),item[headerdict["review_id"]]))
+            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
+                del current_items
+                gc.collect() #clear memory
                 current_items = []
                 current_block+=1
 
@@ -51,7 +59,7 @@ def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
 def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_SET
     current = ""
     postlingslist= set()
-    index = OrderedDict()
+    index = {}
     """"
     if term is same add to current ID set, add +1
     when term changes save progreess
@@ -107,6 +115,8 @@ if __name__=="__main__":
     else:
         stemmer=UselessStemmer()
 
-
+    timedelta = time()
     postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer)
+    timedelta = time()-timedelta
+    print(timedelta)
     f.close()
