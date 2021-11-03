@@ -11,7 +11,7 @@ from time import time
 csv.field_size_limit(sys.maxsize)
 
 
-def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer,break_size):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
+def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer,break_size,dumpprefix):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
     #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES, literally the tokenizer apparently
     reader = csv.reader(file,delimiter=delimiter)
     #BUILD HEADER
@@ -34,14 +34,14 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                    continue
                 current_items.append(( stemmer.stem(word) ,seq_id ))
             if sys.getsizeof(current_items) > 1024*1024*break_size:
-                dump_into_file(f"blockdump{current_block}.ssv",current_items)
+                dump_into_file(f"{dumpprefix}{current_block}.ssv",current_items)
                 del current_items
                 gc.collect() #clear memory
                 current_items = []
                 current_block+=1
         seq_id+=1
     if current_items:
-        dump_into_file(f"blockdump{current_block}.ssv",current_items)
+        dump_into_file(f"{dumpprefix}{current_block}.ssv",current_items)
     return 
 
 def dump_into_file(outputfile,current_items):
@@ -95,6 +95,7 @@ if __name__=="__main__":
                                         , default="default")
     parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
     parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=5)
+    parser.add_argument("--prefix",help="dump file prefix", default="blockdump")
 
     #stemmer
     parser.add_argument('--stemmer', dest='stem', action='store_true')
@@ -124,7 +125,7 @@ if __name__=="__main__":
         stemmer = UselessStemmer()
 
     timedelta = time()
-    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize)
+    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize,args.prefix)
     timedelta = time()-timedelta
     print(timedelta)
     f.close()
