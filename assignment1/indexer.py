@@ -9,13 +9,10 @@ import argparse
 from support import *
 from time import time
 
-# TODO: use gaps instead of docIDs for final merge
-
-MEM_LIMIT=10
 csv.field_size_limit(sys.maxsize)
 
 
-def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
+def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer,break_size):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
     #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES, literally the tokenizer apparently
     reader = csv.reader(file,delimiter=delimiter)
     #BUILD HEADER
@@ -37,7 +34,7 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                 if word in stopwords:
                    continue
                 current_items.append(( stemmer.stem(word) ,seq_id ))
-            if sys.getsizeof(current_items) > 1024*1024*MEM_LIMIT:
+            if sys.getsizeof(current_items) > 1024*1024*break_size:
                 dump_into_file(f"blockdump{current_block}.json",current_items)
                 del current_items
                 gc.collect() #clear memory
@@ -99,6 +96,7 @@ if __name__=="__main__":
     parser.add_argument("--stopwords",help="stopword source, 'default' uses default list, alternatively you can use a file path to a csv file with stopwords"\
                                         , default="default")
     parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
+    parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=5)
 
     #stemmer
     parser.add_argument('--stemmer', dest='stem', action='store_true')
@@ -128,7 +126,7 @@ if __name__=="__main__":
         stemmer = UselessStemmer()
 
     timedelta = time()
-    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer)
+    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize)
     timedelta = time()-timedelta
     print(timedelta)
     f.close()
