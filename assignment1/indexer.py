@@ -3,14 +3,15 @@ import re
 import gc
 import sys
 import gzip
-import psutil
 from nltk.stem import PorterStemmer
-import pickle 
+import json
 import argparse
 from support import *
 from time import time
 
-MEM_LIMIT_PERCENT=30
+# TODO: use gaps instead of docIDs for final merge
+
+MEM_LIMIT=10
 csv.field_size_limit(sys.maxsize)
 
 
@@ -35,22 +36,22 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                 if word in stopwords:
                    continue
                 current_items.append(( stemmer.stem(word) ,item[headerdict["review_id"]] ))
-            if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
-                dump_into_file(f"blockdump{current_block}.pickle",current_items)
+            if sys.getsizeof(current_items) > 1024*1024*MEM_LIMIT:
+                dump_into_file(f"blockdump{current_block}.json",current_items)
                 del current_items
                 gc.collect() #clear memory
                 current_items = []
                 current_block+=1
 
     if current_items:
-        dump_into_file(f"blockdump{current_block}.pickle",current_items)
+        dump_into_file(f"blockdump{current_block}.json",current_items)
     return 
 
 def dump_into_file(outputfile,current_items):
-    f = open(outputfile,"wb")
+    f = open(outputfile,"w")
     current_items = sort_terms(current_items)
     alternate_structure_items = restructure_as_map(current_items)
-    f.write(pickle.dumps(alternate_structure_items))
+    f.write(json.dumps(alternate_structure_items))
     f.close()
 
 def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
@@ -68,7 +69,7 @@ def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_
     for term,id in ordered:
         if current!=term:
             if current!="":
-                index[current]=postlingslist #save
+                index[current]=list(postlingslist) #save
             #reset
             current = term
             postlingslist= set()
