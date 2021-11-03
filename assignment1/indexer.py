@@ -26,7 +26,7 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
             #split text, add individual words
-            words = re.split("[^a-zA-Z0-9]",text)
+            words = re.split("[^a-zA-Z]",text)
             for word in words: #decompressed to support combo keywords and the like in the future
                 if len(word)<min_length:
                     continue
