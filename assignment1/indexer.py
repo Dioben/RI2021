@@ -32,8 +32,8 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                 if len(word)<min_length:
                     continue
                 word = word.lower()
-                #if word in stopwords.words():
-                #   continue
+                if word in stopwords:
+                   continue
                 current_items.append(( stemmer.stem(word) ,item[headerdict["review_id"]] ))
             if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
@@ -105,7 +105,8 @@ if __name__=="__main__":
     relevant_columns= ["review_headline","review_body"]
 
     if args.stopwords=="default":
-        from nltk.corpus import stopwords
+        from nltk.corpus import stopwords as stopword_source
+        stopwords = set(stopword_source.words('english'))
     else:
         stopword_file = open(args.stopwords,"r")    
         stopwords = set(stopword_file.read().split(args.stopword_delimiter))
