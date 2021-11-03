@@ -40,13 +40,14 @@ def merge(filenames,termlimit):
             filewriter = open(f"mergedindex{curr_file}","w") #reset file
     masterindexfile = open("masterindex.ssv","w")
     for item in global_index_struct:
-        outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]}"
-        masterindexfile.write()
+        outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]}\n"
+        masterindexfile.write(outputstring)
+    masterindexfile.close()
 
 def iterateAllFiles(current,currentwords): #checks all currently open files, 
     #if they match lowest ranked word we add them to position calculations
     #and try move on, if they dont have more to give we delete them too
-    positions = set()
+    positions = set() 
     new_terms = set()
 
     for x,y in list(currentwords.items()):
@@ -62,7 +63,7 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
                 del currentwords[x]
             else:
                 currentwords[x]=next_term
-                new_terms.add(next_term)
+                new_terms.add(next_term.split(" ")[0])
     
     positions = sorted(positions)
     gaps = [positions[0]]
