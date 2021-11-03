@@ -4,7 +4,6 @@ import gc
 import sys
 import gzip
 from nltk.stem import PorterStemmer
-import json
 import argparse
 from support import *
 from time import time
@@ -35,14 +34,14 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                    continue
                 current_items.append(( stemmer.stem(word) ,seq_id ))
             if sys.getsizeof(current_items) > 1024*1024*break_size:
-                dump_into_file(f"blockdump{current_block}.json",current_items)
+                dump_into_file(f"blockdump{current_block}.ssv",current_items)
                 del current_items
                 gc.collect() #clear memory
                 current_items = []
                 current_block+=1
         seq_id+=1
     if current_items:
-        dump_into_file(f"blockdump{current_block}.json",current_items)
+        dump_into_file(f"blockdump{current_block}.ssv",current_items)
     return 
 
 def dump_into_file(outputfile,current_items):
@@ -52,7 +51,6 @@ def dump_into_file(outputfile,current_items):
     for x,y in alternate_structure_items.items():
         f.write(x+" ")
         f.write(" ".join([str(doc) for doc in y])+"\n")
-    #f.write(json.dumps(alternate_structure_items))
     f.close()
 
 def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
