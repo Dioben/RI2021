@@ -31,9 +31,10 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
             for word in words: #decompressed to support combo keywords and the like in the future
                 if len(word)<min_length:
                     continue
-                if word in stopwords:
-                    continue
-                current_items.append((stemmer.stem(word.lower()),item[headerdict["review_id"]]))
+                word = word.lower()
+                #if word in stopwords.words():
+                #   continue
+                current_items.append(( stemmer.stem(word) ,item[headerdict["review_id"]] ))
             if psutil.virtual_memory().percent>=MEM_LIMIT_PERCENT: #SORT AND THEN DUMP INTO A BLOCK FILE
                 dump_into_file(f"blockdump{current_block}.pickle",current_items)
                 del current_items
@@ -92,7 +93,7 @@ if __name__=="__main__":
     #stemmer
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
-    parser.set_defaults(feature=True)
+    parser.set_defaults(stem=True)
 
     #input file
     parser.add_argument("--source",help="Source file, please provide gzip compatible files", default="amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz")
@@ -115,6 +116,7 @@ if __name__=="__main__":
     else:
         stemmer=UselessStemmer()
 
+    print(stemmer)
     timedelta = time()
     postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer)
     timedelta = time()-timedelta
