@@ -13,7 +13,7 @@ def scanDirectory(dir,prefix): #return all files starting with prefix
 
 def merge(filenames,termlimit):
     global_index_struct = []
-    curr_index = []
+    consecutive_writes = 0
     curr_file = 0
 
     files = [open(x,"r") for x in filenames]
@@ -32,12 +32,12 @@ def merge(filenames,termlimit):
         global_index_struct.append((current,len(gaps),curr_file,filewriter.tell())) #update global index
 
         filewriter.write(" ".join([str(numb) for numb in gaps])+"\n") #write current data to disk
-
-        if len(curr_index)>=termlimit:
-            curr_index=[]
+        consecutive_writes+=1
+        if consecutive_writes>=termlimit:
+            consecutive_writes=0
             curr_file+=1
             filewriter.close()
-            filewriter = open(f"mergedindex{curr_file}","w") #reset file
+            filewriter = open(f"mergedindex{curr_file}.ssv","w") #reset file
     masterindexfile = open("masterindex.ssv","w")
     for item in global_index_struct:
         outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]}\n"
