@@ -115,9 +115,8 @@ if __name__=="__main__":
     if args.stem:
         stemmer = PorterStemmer()
     else:
-        stemmer=UselessStemmer()
+        stemmer = UselessStemmer()
 
-    print(stemmer)
     timedelta = time()
     postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer)
     timedelta = time()-timedelta

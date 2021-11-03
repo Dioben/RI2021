@@ -1,5 +1,5 @@
 class UselessStemmer():
-    def stem(word):
+    def stem(self,word):
         return word
 
     
