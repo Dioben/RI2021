@@ -11,7 +11,7 @@ def scanDirectory(dir,prefix): #return all files starting with prefix
             files+=[dir+"/"+f]
     return files
 
-def merge(filenames,termlimit):
+def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
     global_index_struct = []
     consecutive_writes = 0
     curr_file = 0
@@ -20,7 +20,7 @@ def merge(filenames,termlimit):
     currentwords = {x:x.readline() for x in files}
     sortedkeys = sorted(set([x.split(" ")[0] for x in currentwords.values() ]))
 
-    filewriter = open(f"mergedindex{curr_file}.ssv","w")
+    filewriter = open(f"{supportfileprefix}{curr_file}.ssv","w")
     while sortedkeys:
 
         current = sortedkeys.pop(0)
@@ -37,8 +37,8 @@ def merge(filenames,termlimit):
             consecutive_writes=0
             curr_file+=1
             filewriter.close()
-            filewriter = open(f"mergedindex{curr_file}.ssv","w") #reset file
-    masterindexfile = open("masterindex.ssv","w")
+            filewriter = open(f"{supportfileprefix}{curr_file}.ssv","w") #reset file
+    masterindexfile = open(masterindexfilename,"w")
     for item in global_index_struct:
         outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]}\n"
         masterindexfile.write(outputstring)
@@ -78,8 +78,10 @@ if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--prefix",help="prefix for data files inside folder",default="block")
     parser.add_argument("--folder",help="data folder",default=".")
-    parser.add_argument("--blocklimit",help="how many terms per output file",default=500)
+    parser.add_argument("--blocklimit",help="how many terms per output file",default=5000)
+    parser.add_argument("--masterfile",help="Master file name",default="masterindex.ssv")
+    parser.add_argument("--outputprefix",help="prefix for non-master output files",default="mergedindex")
     args = parser.parse_args()
 
     files = scanDirectory(args.folder,args.prefix)
-    merge(files,args.blocklimit)
+    merge(files,args.blocklimit,args.masterfile,args.outputprefix)
