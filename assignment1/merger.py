@@ -1,15 +1,8 @@
 import argparse
-import os
 import bisect
+from support import *
 
-from nltk.util import pr
 
-def scanDirectory(dir,prefix): #return all files starting with prefix 
-    files = []
-    for f in os.listdir(dir):
-        if f.startswith(prefix):
-            files+=[dir+"/"+f]
-    return files
 
 def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
     global_index_struct = []
