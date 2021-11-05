@@ -1,5 +1,6 @@
 import argparse
 import csv
+from time import time
 from support import *
 from nltk.stem import PorterStemmer
 
@@ -53,12 +54,19 @@ if __name__=="__main__":
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
     parser.set_defaults(stem=True)
+    parser.add_argument('--timer-only', dest='timing', action='store_true')
+    parser.set_defaults(timing=False)
     args = parser.parse_args()
 
     if args.stem:
         stemmer = PorterStemmer()
     else:
         stemmer = UselessStemmer()
-
+    if args.timing:
+        timedelta = time()
     index = loadIndex(args.masterfile)
+    if args.timing:
+        timedelta= time()-timedelta
+        print(timedelta)
+        exit()
     searchLoop(index,stemmer,args.prefix)

@@ -95,7 +95,7 @@ if __name__=="__main__":
                                         , default="default")
     parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
     parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=5)
-    parser.add_argument("--prefix",help="dump file prefix", default="blockdump")
+    parser.add_argument("--prefix",help="dump file prefix", default="blockdump") 
 
     #stemmer
     parser.add_argument('--stemmer', dest='stem', action='store_true')
