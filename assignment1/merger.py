@@ -1,7 +1,7 @@
 import argparse
 import bisect
 from support import *
-
+from time import time
 
 
 def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
@@ -76,5 +76,8 @@ if __name__=="__main__":
     parser.add_argument("--outputprefix",help="prefix for non-master output files",default="mergedindex")
     args = parser.parse_args()
 
+    timedelta = time()
     files = scanDirectory(args.folder,args.prefix)
     merge(files,args.blocklimit,args.masterfile,args.outputprefix)
+    timedelta = time() - timedelta
+    print(timedelta)
