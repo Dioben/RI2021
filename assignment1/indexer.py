@@ -20,8 +20,12 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
 
     current_block =0
     current_items = []
-    seq_id =0
+    seq_id =-1
+    supposed_size = len(headerdict)
     for item in reader:
+        seq_id+=1
+        if len(item)!=supposed_size: #skip irregularities
+            continue
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
             #split text, add individual words
@@ -39,7 +43,7 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                 gc.collect() #clear memory
                 current_items = []
                 current_block+=1
-        seq_id+=1
+        
     if current_items:
         dump_into_file(f"{dumpprefix}{current_block}.ssv",current_items)
     return 
