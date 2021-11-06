@@ -5,7 +5,7 @@ do
 rm blockdump*
 rm mergedindex*
 rm masterindex*
-time1=$(python3 indexer.py --source $file)
+time1=$(python3 indexer.py --source $file --stopsize 25)
 tempfilecount=$(find . -maxdepth 1 -name "blockdump*" |wc -l)
 time2=$(python3 merger.py)
 indextime=$(echo "$time1 + $time2" | bc)
