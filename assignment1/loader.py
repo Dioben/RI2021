@@ -24,11 +24,14 @@ def searchLoop(index,stemmer,indexprefix):
         
         results = set()
         keywords = query.split(" ")
-        for word in keywords:
-            if not results:
-                results.update(searchFile(index[stemmer.stem(word)],indexprefix))
-            else:
-                results.intersection_update(searchFile(index[stemmer.stem(word)],indexprefix))
+        try:
+            for word in keywords:
+                if not results:
+                    results.update(searchFile(index[stemmer.stem(word)],indexprefix))
+                else:
+                    results.intersection_update(searchFile(index[stemmer.stem(word)],indexprefix))
+        except KeyError:
+            results= set()
         print(f"{len(results)} Documents found:")
         print(sorted(results))
 
