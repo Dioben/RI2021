@@ -34,6 +34,5 @@ This program supports the following parameters:
 + --prefix: Set prefix for input files, default is "block". Input files are assumed to always end in .ssv
 + --outputprefix: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
 + --masterfile: "Master" output file name, default is "masterindex.ssv"
-+ 
 # TODO: REMOVE FOLDER PARAM
 ### loader.py
