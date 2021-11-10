@@ -1,5 +1,6 @@
 #!/bin/bash
 rm datatable.csv #reset file we're appending to
+echo "File,Index time,Index size,Vocabulary size,Temporary file count,Search boot time" >> datatable.csv
 for file in *.tsv.gz
 do
 rm blockdump*
