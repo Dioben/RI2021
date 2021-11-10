@@ -17,5 +17,23 @@ This program supports the following parameters:
 + --source: Input file location
 
 ### merger.py
+Scans for all files matching a preffix and then attempts to merge them.\
+Files are supposedly ordered.\
+All files are initially open and the first term of each is used to initialize a priority queue.\
+The program then iterates over every file simultaneously for as long as there are terms in the queue.\
+The queue is fed new terms as files are iterated.\
+Whenever a file runs out of content it is removed from the file pool.
 
+This process leads to the generation of 2 types of files:
+1. An index file that has a term, document appearance count, filenumber, and file offset per line
+2. Merged index files, containing \n-separated lists of integers which are document IDs and use gaps for storage efficiency   
+
+
+This program supports the following parameters:
++ --blocklimit: Set terms per merged index file, default is 5000
++ --prefix: Set prefix for input files, default is "block". Input files are assumed to always end in .ssv
++ --outputprefix: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
++ --masterfile: "Master" output file name, default is "masterindex.ssv"
++ 
+# TODO: REMOVE FOLDER PARAM
 ### loader.py
