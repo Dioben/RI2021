@@ -6,6 +6,8 @@
 Generates a series of partial index files based on a provided gzip file.
 Output content is partitioned based on the size of the in-memory list structure and its document IDs are sequential, using gaps for storage efficiency.
 
+The tokenizer works by first splitting the text with the regex `[^a-zA-Z]`, which returns a list of purely alphabetical terms, then filtering those terms by the minimum length, the stopwords, and the regex `.*(.)\1{3,}.*`, that removes all terms with 4 or more consecutive repeat characters.
+
 This program supports the following parameters:
 
 + --lenfilter: Minimum character length filter, default value is 4 
@@ -18,7 +20,7 @@ This program supports the following parameters:
 
 ### merger.py
 Scans for all files matching a preffix and then attempts to merge them.\
-Files are supposedly ordered.\
+It assumes that the content of the files is ordered.\
 All files are initially open and the first term of each is used to initialize a priority queue.\
 The program then iterates over every file simultaneously for as long as there are terms in the queue.\
 The queue is fed new terms as files are iterated.\
@@ -36,8 +38,8 @@ This program supports the following parameters:
 + --masterfile: "Master" output file name, default is "masterindex.ssv"
 # TODO: REMOVE FOLDER PARAM
 ### loader.py
-Loads the Master index file into a map, with terms as keys.\
-Terms can then be searched in a command line interface.\
+On startup, loads the master index file into a map, with terms as keys.\
+Terms can then be searched in a command line interface, opening the "mergedindex" files as needed.\
 Use of multiple space-separated terms is supported and will lead to intersection of individual queries.
 
 This program supports the following parameters:
