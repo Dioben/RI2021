@@ -53,7 +53,6 @@ if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--masterfile",help="path to master file",default="masterindex.ssv")
     parser.add_argument("--prefix",help="Index file prefix",default="mergedindex")
-    parser.add_argument("--folder",help="data folder",default=".")
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
     parser.set_defaults(stem=True)
