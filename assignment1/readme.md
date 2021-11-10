@@ -6,7 +6,7 @@
 Generates a series of partial index files based on a provided gzip file.
 Output content is partitioned based on the size of the in-memory list structure and its document IDs are sequential, using gaps for storage efficiency.
 
-The tokenizer works by first splitting the text with the regex `[^a-zA-Z]`, which returns a list of purely alphabetical terms, then filtering those terms by the minimum length, the stopwords, and the regex `.*(.)\1{3,}.*`, that removes all terms with 4 or more consecutive repeat characters.
+The tokenizer works by first splitting the text with the regex `[^a-zA-Z]`, which returns a list of purely alphabetical terms, then filtering those terms to remove the ones smaller than the minimum length, the stopwords, and the ones with 4 or more consecutive repeat characters.
 
 This program supports the following parameters:
 
