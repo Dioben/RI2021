@@ -52,4 +52,4 @@ This program supports the following parameters:
 For each file with the extension `.tsv.gz` in the same folder, it runs `indexer.py` with stop size of 25, `merger.py` and `loader.py` in timer only mode and measures the time taken, the temporary files created, how many terms the index has, and how much storage the index takes.
 
 ### datatable.csv
-The output of `datagen.sh`, run on an AMD Radeon 5600H.
+The output of `datagen.sh` was obtained on a laptop running Kubuntu with an AMD Ryzen 7 5800H and 16GB of RAM.
