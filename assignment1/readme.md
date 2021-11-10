@@ -36,7 +36,7 @@ This program supports the following parameters:
 + --prefix: Set prefix for input files, default is "block". Input files are assumed to always end in .ssv
 + --outputprefix: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
 + --masterfile: "Master" output file name, default is "masterindex.ssv"
-# TODO: REMOVE FOLDER PARAM
+
 ### loader.py
 On startup, loads the master index file into a map, with terms as keys.\
 Terms can then be searched in a command line interface, opening the "mergedindex" files as needed.\
@@ -47,4 +47,9 @@ This program supports the following parameters:
 + --prefix: Prefix to merged index file names, default is "mergedindex"
 + --stemmer/no-stemmer: Toggles Stemming, default is nltk PorterStemmer
 + --timer-only: Loads index and exits without going into interactive search mode
-    # TODO: REMOVE FOLDER PARAM
+
+### datagen.sh
+For each file with the extension `.tsv.gz` in the same folder, it runs `indexer.py` with stop size of 25, `merger.py` and `loader.py` in timer only mode and measures the time taken, the temporary files created, how many terms the index has, and how much storage the index takes.
+
+### datatable.csv
+The output of `datagen.sh`, run on an AMD Radeon 5600H.
