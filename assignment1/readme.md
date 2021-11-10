@@ -36,3 +36,13 @@ This program supports the following parameters:
 + --masterfile: "Master" output file name, default is "masterindex.ssv"
 # TODO: REMOVE FOLDER PARAM
 ### loader.py
+Loads the Master index file into a map, with terms as keys.\
+Terms can then be searched in a command line interface.\
+Use of multiple space-separated terms is supported and will lead to intersection of individual queries.
+
+This program supports the following parameters:
++ --masterfile: Master file location, default is masterindex.ssv
++ --prefix: Prefix to merged index file names, default is "mergedindex"
++ --stemmer/no-stemmer: Toggles Stemming, default is nltk PorterStemmer
++ --timer-only: Loads index and exits without going into interactive search mode
+    # TODO: REMOVE FOLDER PARAM
