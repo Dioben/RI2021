@@ -29,12 +29,12 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
             #split text, add individual words
-            words = re.split("[^a-zA-Z]",text)
+            words = re.split(r"[^a-zA-Z]",text)
             for word in words: #decompressed to support combo keywords and the like in the future
                 if len(word)<min_length:
                     continue
                 word = word.lower()
-                if word in stopwords:
+                if word in stopwords or re.match(r".*(.)\1{3,}.*", word):
                    continue
                 current_items.append(( stemmer.stem(word) ,seq_id ))
             if sys.getsizeof(current_items) > 1024*1024*break_size:
@@ -113,7 +113,7 @@ if __name__=="__main__":
 
 
     f = gzip.open(args.source,"rt")
-    relevant_columns= ["review_headline","review_body"]
+    relevant_columns= ["review_headline","review_body","product_title"]
 
     if args.stopwords=="default":
         from nltk.corpus import stopwords as stopword_source
