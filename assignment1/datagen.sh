@@ -1,6 +1,6 @@
 #!/bin/bash
 rm datatable.csv #reset file we're appending to
-echo "File,Index time (s),Index size (bytes),Term count,Temporary file count,Search boot time (s)" >> datatable.csv
+echo "File,Indexing Time (s),Merge Time (s),Total Index time (s),Index size (bytes),Term count,Temporary file count,Search boot time (s)" >> datatable.csv
 for file in *.tsv.gz
 do
 rm blockdump*
@@ -18,6 +18,6 @@ do
 add=$(stat -c%s $f)
 indexsize=$(expr $add + $indexsize)
 done
-echo "$file,$indextime,$indexsize,$vocabsize,$tempfilecount,$boottime" >>datatable.csv
+echo "$file,$time1,$time2,$indextime,$indexsize,$vocabsize,$tempfilecount,$boottime" >>datatable.csv
 
 done
