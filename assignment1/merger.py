@@ -69,15 +69,14 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
-    parser.add_argument("--prefix",help="prefix for data files inside folder",default="block")
-    parser.add_argument("--folder",help="data folder",default=".")
+    parser.add_argument("--prefix",help="prefix for data files",default="block")
     parser.add_argument("--blocklimit",help="how many terms per output file",default=5000)
     parser.add_argument("--masterfile",help="Master file name",default="masterindex.ssv")
     parser.add_argument("--outputprefix",help="prefix for non-master output files",default="mergedindex")
     args = parser.parse_args()
 
     timedelta = time()
-    files = scanDirectory(args.folder,args.prefix)
+    files = scanDirectory(args.prefix)
     merge(files,args.blocklimit,args.masterfile,args.outputprefix)
     timedelta = time() - timedelta
     print(timedelta)
