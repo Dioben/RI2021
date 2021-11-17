@@ -11,8 +11,8 @@ from time import time
 csv.field_size_limit(sys.maxsize)
 
 
-def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer,break_size,dumpprefix):#DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY
-    #NEW FEATURES: CREATES AND DUMPS TOKEN SEQUENCES, literally the tokenizer apparently
+def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer,break_size,dumpprefix):
+    #DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY, CREATES AND DUMPS TOKEN SEQUENCES
     reader = csv.reader(file,delimiter=delimiter)
     #BUILD HEADER
     header = reader.__next__()
@@ -30,7 +30,7 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
             text = item[headerdict[column_name]]
             #split text, add individual words
             words = re.split(r"[^a-zA-Z]",text)
-            for word in words: #decompressed to support combo keywords and the like in the future
+            for word in words: #decompressed to support combo keywords and the like
                 if len(word)<min_length:
                     continue
                 word = word.lower()
@@ -69,7 +69,6 @@ def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_
     if term is same add to current ID set, add +1
     when term changes save progreess
     """
-    #TODO: MAKE THIS FOLLOW HOW GAPS ACTUALLY WORK, for loop is probably good enough
     for term,id in ordered:
         if current!=term:
             if current!="":
@@ -99,6 +98,7 @@ if __name__=="__main__":
                                         , default="default")
     parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
     parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=5)
+    
     parser.add_argument("--prefix",help="dump file prefix", default="blockdump") 
 
     #stemmer
