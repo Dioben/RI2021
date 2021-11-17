@@ -36,6 +36,8 @@ def searchLoop(index,stemmer,indexprefix):
         print(sorted(results))
 
 def searchFile(indexentry,indexprefix):
+    #searches for term in file
+    #also turns gaps into docIDs
     f = open(f"{indexprefix}{indexentry[1]}.ssv") 
     f.seek(int(indexentry[2]))
     line = f.readline()
