@@ -130,7 +130,7 @@ if __name__=="__main__":
         stemmer = UselessStemmer()
 
     timedelta = time()
-    postinglist = process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize,args.prefix)
+    process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize,args.prefix)
     timedelta = time()-timedelta
     print(timedelta)
     f.close()
