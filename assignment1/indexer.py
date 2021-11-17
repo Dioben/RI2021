@@ -35,6 +35,7 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                     continue
                 word = word.lower()
                 if word in stopwords or re.match(r".*(.)\1{3,}.*", word):
+                    #does not add stopwords or terms with more than 3 equal consecutive symbols
                    continue
                 current_items.append(( stemmer.stem(word) ,seq_id ))
             if sys.getsizeof(current_items) > 1024*1024*break_size:
