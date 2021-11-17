@@ -34,7 +34,7 @@ This process leads to the generation of 2 types of files:
 This program supports the following parameters:
 + **--blocklimit**: Set terms per merged index file, default is 5000
 + **--prefix**: Set prefix for input files, default is "block". Input files are assumed to always end in .ssv
-+ **--**outputprefix**: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
++ **--outputprefix**: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
 + **--masterfile**: "Master" output file name, default is "masterindex.ssv"
 
 ### loader.py
