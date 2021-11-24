@@ -41,6 +41,7 @@ This program supports the following parameters:
 + **--prefix**: Set prefix for output files, default is "blockdump". Output files will always end in .ssv
 + **--stemmer/no-stemmer**: sets whether to use Stemming. By default nltk PorterStemmer is used.
 + **--source**: Input file location
++ **--relevant**: Columns to search, comma-separated
 
 ### merger.py
 Scans for all files matching a preffix and then attempts to merge them.\
