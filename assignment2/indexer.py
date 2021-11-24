@@ -101,7 +101,8 @@ if __name__=="__main__":
     parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=5)
     
     parser.add_argument("--prefix",help="dump file prefix", default="blockdump") 
-
+    #relevant columns
+    parser.add_argument("--relevant",help="Columns to index, comma separated", default="review_headline,review_body,product_title") 
     #stemmer
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
@@ -114,7 +115,7 @@ if __name__=="__main__":
 
 
     f = gzip.open(args.source,"rt")
-    relevant_columns= ["review_headline","review_body","product_title"]
+    relevant_columns= args.relevant.split(",")
 
     if args.stopwords=="default":
         from nltk.corpus import stopwords as stopword_source
