@@ -3,10 +3,11 @@ import re
 import gc
 import sys
 import gzip
+from typing import Counter
 from nltk.stem import PorterStemmer
 import argparse
 from support import *
-from time import time
+from time import perf_counter, time
 
 csv.field_size_limit(sys.maxsize)
 
@@ -58,9 +59,9 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
 def dump_metadata(doccount,documentinfo,outputfile):
     avglen = sum([x[2] for x in documentinfo])/doccount
     metadatafile = open(outputfile,"w")
-    metadatafile.write(f"{doccount} {avglen}")
+    metadatafile.write(f"{doccount} {avglen}\n")
     for x in documentinfo:
-        metadatafile.write(f"{x[0]} {x[1]} {x[2]}")
+        metadatafile.write(f"{x[0]} {x[1]} {x[2]}\n")
     metadatafile.close()
 
 def dump_into_file(outputfile,current_items):
@@ -69,7 +70,7 @@ def dump_into_file(outputfile,current_items):
     alternate_structure_items = restructure_as_map(current_items)
     for x,y in alternate_structure_items.items():
         f.write(x+" ")
-        f.write(" ".join([str(doc) for doc in y])+"\n")
+        f.write(" ".join([f"{doc}:{count}" for doc,count in y])+"\n")
     f.close()
 
 def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
@@ -77,9 +78,8 @@ def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
 
 
 def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_SET
-    #TODO: MAKE THIS THING COUNT HOW MANY TIMES A WORD SHOWS UP IN A DOC AGAIN
     current = ""
-    postingslist= set()
+    postingslist= []
     index = {}
     """"
     if term is same add to current ID set, add +1
@@ -88,16 +88,17 @@ def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_
     for term,id in ordered:
         if current!=term:
             if current!="":
-                postingslist = sorted(postingslist)
-                gaps = [postingslist[0]]
+                postingsMap = Counter(postingslist)#automatically map
+                postingslist = sorted(set(postingslist))
+                gaps = [(postingslist[0],postingsMap[postingslist[0]])]
                 for i in range(len(postingslist))[1:]:
-                    gaps+= [postingslist[i]-postingslist[i-1]]
+                    gaps+= [(postingslist[i]-postingslist[i-1],postingsMap[postingslist[i]])]
                 index[current]=gaps #save
             #reset
             current = term
-            postingslist= set()
+            postingslist= []
         #update
-        postingslist.add(id)
+        postingslist.append(id)
 
     return index
 
@@ -147,8 +148,8 @@ if __name__=="__main__":
     else:
         stemmer = UselessStemmer()
 
-    timedelta = time()
+    timedelta =perf_counter()
     process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize,args.prefix,args.metadata)
-    timedelta = time()-timedelta
+    timedelta = perf_counter()-timedelta
     print(timedelta)
     f.close()
