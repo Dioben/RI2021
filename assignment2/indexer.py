@@ -3,7 +3,7 @@ import re
 import gc
 import sys
 import gzip
-from typing import Counter
+from collections import Counter
 from nltk.stem import PorterStemmer
 import argparse
 from support import *
