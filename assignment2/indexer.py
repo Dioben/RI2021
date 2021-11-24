@@ -11,7 +11,7 @@ from time import time
 csv.field_size_limit(sys.maxsize)
 
 
-def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer,break_size,dumpprefix):
+def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemmer,break_size,dumpprefix,metadatafilename):
     #DESCRIPTION: LOADS FILE, GETS CSV ARRAY AND A HEADER DICTIONARY, CREATES AND DUMPS TOKEN SEQUENCES
     reader = csv.reader(file,delimiter=delimiter)
     #BUILD HEADER
@@ -22,12 +22,16 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
     current_items = []
     seq_id =-1
     supposed_size = len(headerdict)
+
+    docsinfo=[]
     for item in reader:
-        seq_id+=1
         if len(item)!=supposed_size: #skip irregularities
             continue
+        seq_id+=1
+        doc_len = 0
         for column_name in relevant_columns:
             text = item[headerdict[column_name]]
+            doc_len+=len(text)
             #split text, add individual words
             words = re.split(r"[^a-zA-Z]",text)
             for word in words: #decompressed to support combo keywords and the like
@@ -44,10 +48,20 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                 gc.collect() #clear memory
                 current_items = []
                 current_block+=1
-        
+        docsinfo.append((seq_id,item[headerdict['review_id']],doc_len))
     if current_items:
         dump_into_file(f"{dumpprefix}{current_block}.ssv",current_items)
-    return 
+
+    dump_metadata(seq_id+1,docsinfo,metadatafilename)
+
+
+def dump_metadata(doccount,documentinfo,outputfile):
+    avglen = sum([x[2] for x in documentinfo])/doccount
+    metadatafile = open(outputfile,"w")
+    metadatafile.write(f"{doccount} {avglen}")
+    for x in documentinfo:
+        metadatafile.write(f"{x[0]} {x[1]} {x[2]}")
+    metadatafile.close()
 
 def dump_into_file(outputfile,current_items):
     f = open(outputfile,"w")
@@ -63,6 +77,7 @@ def sort_terms(array): #DESCRIPTION: SORTS TOKEN SEQUENCE
 
 
 def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_SET
+    #TODO: MAKE THIS THING COUNT HOW MANY TIMES A WORD SHOWS UP IN A DOC AGAIN
     current = ""
     postingslist= set()
     index = {}
@@ -108,6 +123,8 @@ if __name__=="__main__":
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
     parser.set_defaults(stem=True)
 
+    #metadata file
+    parser.add_argument("--metadata",help="Metadata output file", default="stage1metadata.ssv")
     #input file
     parser.add_argument("--source",help="Source file, please provide gzip compatible files", default="amazon_reviews_us_Digital_Video_Games_v1_00.tsv.gz")
 
@@ -131,7 +148,7 @@ if __name__=="__main__":
         stemmer = UselessStemmer()
 
     timedelta = time()
-    process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize,args.prefix)
+    process_file(f,"\t",relevant_columns, args.lenfilter,stopwords,stemmer,args.stopsize,args.prefix,args.metadata)
     timedelta = time()-timedelta
     print(timedelta)
     f.close()
