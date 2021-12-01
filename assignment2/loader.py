@@ -54,12 +54,16 @@ def searchFile(indexentry,indexprefix):
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--masterfile",help="path to master file",default="masterindex.ssv")
+    parser.add_argument("--metadata",help="path to stage 1 metadata",default="stage1metadata.ssv")
     parser.add_argument("--prefix",help="Index file prefix",default="mergedindex")
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
     parser.set_defaults(stem=True)
     parser.add_argument('--timer-only', dest='timing', action='store_true')
     parser.set_defaults(timing=False)
+    parser.add_argument('--BM25', dest='bm25', action='store_true')
+    parser.add_argument('--vector', dest='bm25', action='store_false')
+    parser.set_defaults(bm25=True)
     args = parser.parse_args()
 
     if args.stem:
