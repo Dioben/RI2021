@@ -4,14 +4,22 @@ from support import *
 from time import time
 
 
+def parseTextLine(line):
+    line = line.split(" ")
+    freqs = []
+    for doc in line[1:]:
+        parts = doc.split(":")
+        freqs+=(int(parts[0],int(parts[1])))
+    return {"word":line[0],"freqs":freqs}
+
 def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
     global_index_struct = []
     consecutive_writes = 0
     curr_file = 0
 
     files = [open(x,"r") for x in filenames]
-    currentwords = {x:x.readline() for x in files}
-    sortedkeys = sorted(set([x.split(" ")[0] for x in currentwords.values() ]))
+    currentwords = {x:parseTextLine(x.readline()) for x in files}
+    sortedkeys = sorted(set([x['word'] for x in currentwords.values() ]))
 
     filewriter = open(f"{supportfileprefix}{curr_file}.ssv","w")
     while sortedkeys:
