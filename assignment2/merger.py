@@ -84,6 +84,8 @@ if __name__=="__main__":
     parser.add_argument('--BM25', dest='bm25', action='store_true')
     parser.add_argument('--vector', dest='bm25', action='store_false')
     parser.set_defaults(bm25=True)
+    parser.add_argument('--BM25-k',type=float,default="1.2")
+    parser.add_argument('--BM25-b',type=float,default="0.75")
     args = parser.parse_args()
 
     timedelta = time()
