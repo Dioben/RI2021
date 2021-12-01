@@ -25,14 +25,14 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
     while sortedkeys:
 
         current = sortedkeys.pop(0)
-        currentwords,gaps,new_terms = iterateAllFiles(current,currentwords)
+        currentwords,gapsandweights,new_terms = iterateAllFiles(current,currentwords)#TODO: CALCUTE WEIGHT BASED ON SETTINGS
         for term in new_terms:
             if term not in sortedkeys:
                 bisect.insort(sortedkeys,term)
         
-        global_index_struct.append((current,len(gaps),curr_file,filewriter.tell())) #update global index
+        global_index_struct.append((current,len(gapsandweights),curr_file,filewriter.tell())) #update global index #TODO: ADD IDF
 
-        filewriter.write(" ".join([str(numb) for numb in gaps])+"\n") #write current data to disk
+        filewriter.write(" ".join([f"{numb}:{score}" for numb,score in gapsandweights])+"\n") #write current data to disk
         consecutive_writes+=1
         if consecutive_writes>=termlimit:
             consecutive_writes=0
@@ -41,7 +41,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
             filewriter = open(f"{supportfileprefix}{curr_file}.ssv","w") #reset file
     masterindexfile = open(masterindexfilename,"w")
     for item in global_index_struct:
-        outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]}\n"
+        outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]}\n" #TODO: ADD IDF
         masterindexfile.write(outputstring)
     masterindexfile.close()
 
@@ -52,9 +52,8 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
     new_terms = set()
 
     for x,y in list(currentwords.items()):
-        splits = y.split(" ")
-        if splits[0]==current:
-            docids = [int(item) for item in splits[1:]]
+        if y['word']==current:
+            docids = [item[0] for item in y["freqs"]] #TODO: SOMETHING ABOUT WEIGHT OR SCORE HERE
             id_adder = 0
             for item in docids:
                 id_adder+=item
@@ -63,8 +62,8 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
             if next_term=="":
                 del currentwords[x]
             else:
-                currentwords[x]=next_term
-                new_terms.add(next_term.split(" ")[0])
+                currentwords[x]=parseTextLine(next_term)
+                new_terms.add(currentwords[x]["word"])
     
     positions = sorted(positions)
     gaps = [positions[0]]
