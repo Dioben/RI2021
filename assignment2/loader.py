@@ -85,6 +85,7 @@ def calcScoreBM25(termDocs, commonDocs, *_):
     for doc in commonDocs:
         score = 0
         for tf, docValues in termDocs.values():
+            # TODO: unsure if the "* tf" should be here to account by how many times the term is in the query
             score += docValues[doc] * tf
         result.append((doc, score))
     return result
