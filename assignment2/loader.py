@@ -3,18 +3,36 @@ import csv
 from time import time
 from support import *
 from nltk.stem import PorterStemmer
+import math
 
+
+def readMetadata(metadatafile):
+    # unlike the readMetadata in merger.py, this one also stores the real_IDs
+    f = open(metadatafile,"r")
+    data = f.readline().split(" ")
+    data = {"avglen":float(data[1]),"totaldocs":int(data[0])}
+    doclens = []
+    realids = []
+    for line in f:
+        row = line.split(" ")
+        doclens.append(int(row[2]))
+        realids.append(row[1])
+    f.close()
+    data["lengths"] = doclens
+    data["realids"] = realids
+    return data
 
 def loadIndex(masterfile):
     output = {}
     file = open(masterfile,"r")
     reader = csv.reader(file,delimiter=" ")
     for line in reader:
-        output[line[0]] = (line[1],line[2],line[3])
+        # line = (term, df, fileNum, offset, score/weight)
+        output[line[0]] = (line[1],line[2],line[3],line[4])
     file.close()
     return output
 
-def searchLoop(index,stemmer,indexprefix):
+def searchLoop(index,stemmer,indexprefix,metadata,scorefunc):
     print("Entering query mode")
     print("Use '!q' to exit \nMultiple keywords can be used with space separation")
     while True:
@@ -22,18 +40,24 @@ def searchLoop(index,stemmer,indexprefix):
         if query =="!q":
             exit()
         
-        results = set()
+        allDocs = set()
+        termDocs = dict()
         keywords = query.split(" ")
-        try:
+        try: # TODO: should we ignore unknown terms instead?
             for word in keywords:
-                if not results:
-                    results.update(searchFile(index[stemmer.stem(word)],indexprefix))
+                if word not in termDocs:
+                    docs = searchFile(index[stemmer.stem(word)],indexprefix)
+                    allDocs.update(docs.keys())
+                    termDocs[word] = (1, docs)
                 else:
-                    results.intersection_update(searchFile(index[stemmer.stem(word)],indexprefix))
+                    termDocs[word] = (termDocs[word][0]+1, termDocs[word][1])
         except KeyError:
-            results= set()
-        print(f"{len(results)} Documents found:")
-        print(sorted(results))
+            termDocs = dict()
+        
+        results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
+
+        print(f'{len(results)} documents found, top 100:')
+        print([metadata["realids"][doc] for doc, _ in sorted(results, key=lambda x: x[1], reverse=True)[0:100]])
 
 def searchFile(indexentry,indexprefix):
     #searches for term in file
@@ -42,15 +66,37 @@ def searchFile(indexentry,indexprefix):
     f.seek(int(indexentry[2]))
     line = f.readline()
     f.close()
-    nums = [int(x) for x in line.split(" ")]
+    docs = [x.split(":") for x in line.split(" ")]
     adder = 0
-    result = []
-    for x in nums:
-        adder+=x
-        result.append(adder)
+    result = dict()
+    for num, value in docs:
+        num, value = int(num), float(value)
+        adder += num
+        result[adder] = value
     return result
-    
 
+def calcScoreBM25(termDocs, commonDocs, *_):
+    result = []
+    for doc in commonDocs:
+        score = 0
+        for tf, docValues in termDocs.values():
+            # TODO: unsure if the "* tf" should be here to account by how many times the term is in the query
+            score += (docValues[doc] if doc in docValues else 0) * tf
+        result.append((doc, score))
+    return result
+
+def calcScoreVector(termDocs, commonDocs, totaldocs, index):
+    result = []
+    for doc in commonDocs:
+        termWeights = []
+        docWeights = []
+        for term, (tf, docValues) in termDocs.items():
+            termWeights.append((1 + math.log10(tf)) * math.log10(totaldocs/int(index[term][0])))
+            docWeights.append(docValues[doc] if doc in docValues else 0)
+        queryLen = math.sqrt(sum(w ** 2 for w in termWeights))
+        result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
+    return result
+        
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--masterfile",help="path to master file",default="masterindex.ssv")
@@ -70,11 +116,19 @@ if __name__=="__main__":
         stemmer = PorterStemmer()
     else:
         stemmer = UselessStemmer()
+
     if args.timing:
         timedelta = time()
     index = loadIndex(args.masterfile)
+    metadata = readMetadata(args.metadata)
     if args.timing:
         timedelta= time()-timedelta
         print(timedelta)
         exit()
-    searchLoop(index,stemmer,args.prefix)
+
+    if args.bm25:
+        scorefunc = calcScoreBM25
+    else:
+        scorefunc = calcScoreVector
+
+    searchLoop(index,stemmer,args.prefix,metadata,scorefunc)
