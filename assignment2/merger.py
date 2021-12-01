@@ -2,7 +2,14 @@ import argparse
 import bisect
 from support import *
 from time import time
+import math
 
+
+def readMetadataHeader(metadatafile):
+    f = open(metadatafile,"r")
+    data = f.readline.split(" ")
+    f.close()
+    return {"avglen":float(data[1]),"totaldocs":int(data[0])}
 
 def parseTextLine(line):
     line = line.split(" ")
@@ -12,11 +19,10 @@ def parseTextLine(line):
         freqs+=(int(parts[0],int(parts[1])))
     return {"word":line[0],"freqs":freqs}
 
-def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
+def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs):
     global_index_struct = []
     consecutive_writes = 0
     curr_file = 0
-
     files = [open(x,"r") for x in filenames]
     currentwords = {x:parseTextLine(x.readline()) for x in files}
     sortedkeys = sorted(set([x['word'] for x in currentwords.values() ]))
@@ -29,8 +35,8 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
         for term in new_terms:
             if term not in sortedkeys:
                 bisect.insort(sortedkeys,term)
-        
-        global_index_struct.append((current,len(gapsandweights),curr_file,filewriter.tell())) #update global index #TODO: ADD IDF
+        docsforterm = len(gapsandweights)
+        global_index_struct.append((current,docsforterm,curr_file,filewriter.tell(),math.log10(totaldocs/docsforterm))) #update global index
 
         filewriter.write(" ".join([f"{numb}:{score}" for numb,score in gapsandweights])+"\n") #write current data to disk
         consecutive_writes+=1
@@ -41,7 +47,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix):
             filewriter = open(f"{supportfileprefix}{curr_file}.ssv","w") #reset file
     masterindexfile = open(masterindexfilename,"w")
     for item in global_index_struct:
-        outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]}\n" #TODO: ADD IDF
+        outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]} {item[4]}\n"
         masterindexfile.write(outputstring)
     masterindexfile.close()
 
@@ -88,8 +94,11 @@ if __name__=="__main__":
     parser.add_argument('--BM25-b',type=float,default="0.75")
     args = parser.parse_args()
 
+
+    metadata = readMetadataHeader(args.metadata)
+
     timedelta = time()
     files = scanDirectory(args.prefix)
-    merge(files,args.blocklimit,args.masterfile,args.outputprefix)
+    merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'])
     timedelta = time() - timedelta
     print(timedelta)
