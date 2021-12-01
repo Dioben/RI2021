@@ -80,6 +80,10 @@ if __name__=="__main__":
     parser.add_argument("--blocklimit",help="how many terms per output file",default=5000)
     parser.add_argument("--masterfile",help="Master file name",default="masterindex.ssv")
     parser.add_argument("--outputprefix",help="prefix for non-master output files",default="mergedindex")
+    parser.add_argument("--metadata",help="path to stage 1 metadata",default="stage1metada.ssv")
+    parser.add_argument('--BM25', dest='bm25', action='store_true')
+    parser.add_argument('--vector', dest='bm25', action='store_false')
+    parser.set_defaults(bm25=True)
     args = parser.parse_args()
 
     timedelta = time()
