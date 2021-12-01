@@ -83,16 +83,19 @@ def iterateAllFilesBM25(current,currentwords): #checks all currently open files,
 def iterateAllFilesVector(current,currentwords): #checks all currently open files, 
     #if they match lowest ranked word we add them to position calculations
     #and try move on, if they dont have more to give we delete them too
-    positions = set() 
+    positions = {} 
     new_terms = set()
 
     for x,y in list(currentwords.items()):
         if y['word']==current:
-            docids = [item[0] for item in y["freqs"]] #TODO: SOMETHING ABOUT SCORE HERE
+            #TODO: SOMETHING ABOUT SCORE HERE
             id_adder = 0
-            for item in docids:
-                id_adder+=item
-                positions.add(id_adder)
+            for id,freq in y['freqs']:
+                id_adder+=id
+                if id_adder not in positions:
+                    positions[id_adder] = freq
+                else:
+                    positions[id_adder]+= freq
             next_term = x.readline()
             if next_term=="":
                 del currentwords[x]
@@ -100,10 +103,16 @@ def iterateAllFilesVector(current,currentwords): #checks all currently open file
                 currentwords[x]=parseTextLine(next_term)
                 new_terms.add(currentwords[x]["word"])
     
-    positions = sorted(positions)
-    gaps = [positions[0]]
-    for i in range(len(positions))[1:]:
-        gaps+= [positions[i]-positions[i-1]]
+    positionkeys = sorted(positions.keys())
+    denum = sum([(1+math.log10(x))**2 for x in positions.values()])
+    denum = math.sqrt(denum)
+    gaps = [(positionkeys[0],
+                            (1+math.log10(
+                                positions[positionkeys[0]]
+                                ))/denum
+            )]
+    for i in range(len(positionkeys))[1:]:
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], (1+math.log10(positions[positionkeys[i]]))/denum )]
    
     
     return currentwords,gaps,new_terms
