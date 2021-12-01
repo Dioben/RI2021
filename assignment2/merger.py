@@ -19,7 +19,7 @@ def parseTextLine(line):
         freqs+=(int(parts[0],int(parts[1])))
     return {"word":line[0],"freqs":freqs}
 
-def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs):
+def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,iterateFunc):
     global_index_struct = []
     consecutive_writes = 0
     curr_file = 0
@@ -31,7 +31,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs):
     while sortedkeys:
 
         current = sortedkeys.pop(0)
-        currentwords,gapsandweights,new_terms = iterateAllFiles(current,currentwords)#TODO: CALCUTE WEIGHT BASED ON SETTINGS
+        currentwords,gapsandweights,new_terms = iterateFunc(current,currentwords)
         for term in new_terms:
             if term not in sortedkeys:
                 bisect.insort(sortedkeys,term)
@@ -51,7 +51,8 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs):
         masterindexfile.write(outputstring)
     masterindexfile.close()
 
-def iterateAllFiles(current,currentwords): #checks all currently open files, 
+
+def iterateAllFilesBM25(current,currentwords): #checks all currently open files, 
     #if they match lowest ranked word we add them to position calculations
     #and try move on, if they dont have more to give we delete them too
     positions = set() 
@@ -59,7 +60,7 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
 
     for x,y in list(currentwords.items()):
         if y['word']==current:
-            docids = [item[0] for item in y["freqs"]] #TODO: SOMETHING ABOUT WEIGHT OR SCORE HERE
+            docids = [item[0] for item in y["freqs"]] #TODO: SOMETHING ABOUT WEIGHT HERE
             id_adder = 0
             for item in docids:
                 id_adder+=item
@@ -79,6 +80,33 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
     
     return currentwords,gaps,new_terms
 
+def iterateAllFilesVector(current,currentwords): #checks all currently open files, 
+    #if they match lowest ranked word we add them to position calculations
+    #and try move on, if they dont have more to give we delete them too
+    positions = set() 
+    new_terms = set()
+
+    for x,y in list(currentwords.items()):
+        if y['word']==current:
+            docids = [item[0] for item in y["freqs"]] #TODO: SOMETHING ABOUT SCORE HERE
+            id_adder = 0
+            for item in docids:
+                id_adder+=item
+                positions.add(id_adder)
+            next_term = x.readline()
+            if next_term=="":
+                del currentwords[x]
+            else:
+                currentwords[x]=parseTextLine(next_term)
+                new_terms.add(currentwords[x]["word"])
+    
+    positions = sorted(positions)
+    gaps = [positions[0]]
+    for i in range(len(positions))[1:]:
+        gaps+= [positions[i]-positions[i-1]]
+   
+    
+    return currentwords,gaps,new_terms
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
@@ -99,6 +127,13 @@ if __name__=="__main__":
 
     timedelta = time()
     files = scanDirectory(args.prefix)
-    merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'])
+    if args.bm25:
+        iteratefunc = iterateAllFilesBM25
+        iterateAllFilesBM25.k = args.BM25_k
+        iterateAllFilesBM25.b = args.BM25_b
+    else:
+        iteratefunc = iterateAllFilesVector
+
+    merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],iteratefunc)
     timedelta = time() - timedelta
     print(timedelta)
