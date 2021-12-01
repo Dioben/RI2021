@@ -40,26 +40,21 @@ def searchLoop(index,stemmer,indexprefix,metadata,scorefunc):
         if query =="!q":
             exit()
         
-        commonDocs = set()
+        allDocs = set()
         termDocs = dict()
         keywords = query.split(" ")
         try: # TODO: should we ignore unknown terms instead?
             for word in keywords:
                 if word not in termDocs:
                     docs = searchFile(index[stemmer.stem(word)],indexprefix)
-
-                    if not commonDocs:
-                        commonDocs.update(docs.keys())
-                    else:
-                        commonDocs.intersection_update(docs.keys())
-                
+                    allDocs.update(docs.keys())
                     termDocs[word] = (1, docs)
                 else:
                     termDocs[word] = (termDocs[word][0]+1, termDocs[word][1])
         except KeyError:
             termDocs = dict()
         
-        results = scorefunc(termDocs, commonDocs, metadata["totaldocs"], index)
+        results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
 
         print(f'{len(results)} documents found, top 100:')
         print([metadata["realids"][doc] for doc, _ in sorted(results, key=lambda x: x[1], reverse=True)[0:100]])
@@ -86,7 +81,7 @@ def calcScoreBM25(termDocs, commonDocs, *_):
         score = 0
         for tf, docValues in termDocs.values():
             # TODO: unsure if the "* tf" should be here to account by how many times the term is in the query
-            score += docValues[doc] * tf
+            score += (docValues[doc] if doc in docValues else 0) * tf
         result.append((doc, score))
     return result
 
@@ -97,7 +92,7 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
         docWeights = []
         for term, (tf, docValues) in termDocs.items():
             termWeights.append((1 + math.log10(tf)) * math.log10(totaldocs/int(index[term][0])))
-            docWeights.append(docValues[doc])
+            docWeights.append(docValues[doc] if doc in docValues else 0)
         queryLen = math.sqrt(sum(w ** 2 for w in termWeights))
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
