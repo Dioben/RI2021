@@ -1,30 +1,6 @@
 ## Information Review 2021 - Assignment 1
 ###### by Diogo Bento 93391 and Pedro Laranjinha 93179
 
-## <span style="color:red"> this is unfinished as shit brooo</span>
-
-PHASE 1:
-
-ADD #WORD/DOC TO BLOCKDUMPS
-ADD METADATA FILE WITH TOTAL DOC COUNT, AVGLEN DOCS,DOC LEN PER DOC seq ID and review ID per doc 
-
-PHASE 2:
-
-REDO FILE PARSE
-ADD IDF TO MASTERINDEX
-ADD WEIGHT AFTER EVERY GAP -> GAP:WEIGHT OR SCORE IF BM26, SAME SHIT
-NORMALIZE WEIGHTS HERE, USE WEIGHT AS TOP INSTEAD OF 1 LIKE IN SLIDES
-
-
-PHASE 3:
-
-DIFF FILE PARSE -> MORE 1 FIELD TO MASTERINDEX
-ADD 2 DIFFERENT QUERY LOOP METHODS
-LOAD ID MAPPING
-tf idf needs query info, bmi does not give a shit
-
-
-<span style="color:red"> ################################################</span>
 ## Software
 ### indexer.py
 Generates a series of partial index files based on a provided gzip file.
