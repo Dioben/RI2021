@@ -43,21 +43,22 @@ def searchLoop(index,stemmer,indexprefix,metadata,scorefunc):
         allDocs = set()
         termDocs = dict()
         keywords = query.split(" ")
-        try: # TODO: should we ignore unknown terms instead?
-            for word in keywords:
+        for word in keywords:
+            try:
                 if word not in termDocs:
                     docs = searchFile(index[stemmer.stem(word)],indexprefix)
                     allDocs.update(docs.keys())
                     termDocs[word] = (1, docs)
                 else:
                     termDocs[word] = (termDocs[word][0]+1, termDocs[word][1])
-        except KeyError:
-            termDocs = dict()
+            except KeyError:
+                pass
         
         results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
 
         print(f'{len(results)} documents found, top 100:')
-        print([metadata["realids"][doc] for doc, _ in sorted(results, key=lambda x: x[1], reverse=True)[0:100]])
+        top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:100]]
+        print(*[f'{docID:16s} | {score:7.3f}\n' for docID, score in top100], sep="")
 
 def searchFile(indexentry,indexprefix):
     #searches for term in file
@@ -80,7 +81,6 @@ def calcScoreBM25(termDocs, commonDocs, *_):
     for doc in commonDocs:
         score = 0
         for tf, docValues in termDocs.values():
-            # TODO: unsure if the "* tf" should be here to account by how many times the term is in the query
             score += (docValues[doc] if doc in docValues else 0) * tf
         result.append((doc, score))
     return result
