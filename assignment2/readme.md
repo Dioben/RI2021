@@ -3,7 +3,7 @@
 
 ## Software
 ### indexer.py
-Generates a series of partial index files based on a provided gzip file.
+Generates a series of partial index files based on a provided gzip file, as well as a global metadata file.
 Output content is partitioned based on the size of the in-memory list structure and its document IDs are sequential, using gaps for storage efficiency.
 
 The tokenizer works by first splitting the text with the regex `[^a-zA-Z]`, which returns a list of purely alphabetical terms, then filtering those terms to remove the ones smaller than the minimum length, the stopwords, and the ones with 4 or more consecutive repeat characters.
@@ -45,6 +45,16 @@ This program supports the following parameters:
 + **--prefix**: Set prefix for input files, default is "block". Input files are assumed to always end in .ssv
 + **--outputprefix**: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
 + **--masterfile**: "Master" output file name, default is "masterindex.ssv"
++ **--metadata**: File to read stage 1 metadata from, default is stage1metadata.ssv
++ **--BM25/vector**: Toggle between BM25 and lnc.ltc scoring, default is BM25
++ **--BM25-k**: The k parameter for BM25 scoring, default is 1.2
++ **--BM25-b**: The b parameter for BM25 scoring, default is 0.75
+
+### Features added for 2nd assigment:
++ Master index now includes IDF data.  
++ Weights are now added to the index files, pre-normalized in vector's case.  
+
+Additionally file line parsing is no longer done several times, which has led to a performance increase eclipsed by the downgrade caused by performing score calculations.
 
 ### loader.py
 On startup, loads the master index file into a map, with terms as keys.\
