@@ -18,6 +18,10 @@ This program supports the following parameters:
 + **--stemmer/no-stemmer**: sets whether to use Stemming. By default nltk PorterStemmer is used.
 + **--source**: Input file location
 + **--relevant**: Columns to search, comma-separated
++ **--metadata**: File to output metadata into, default is stage1metadata.ssv
+
+### Features added for 2nd assigment:
+
 
 ### merger.py
 Scans for all files matching a preffix and then attempts to merge them.\
