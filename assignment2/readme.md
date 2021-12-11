@@ -21,7 +21,11 @@ This program supports the following parameters:
 + **--metadata**: File to output metadata into, default is stage1metadata.ssv
 
 ### Features added for 2nd assigment:
-
+- Data blocks now include how many times a term in seen in each document  
+- Now outputs a metadata file including: 
+    + average document length
+    + total document count
+    + sequential ID, original ID, document length for each document indexed
 
 ### merger.py
 Scans for all files matching a preffix and then attempts to merge them.\
