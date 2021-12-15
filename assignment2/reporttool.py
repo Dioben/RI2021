@@ -4,7 +4,6 @@ from time import time
 from support import *
 from nltk.stem import PorterStemmer
 import math
-import json
 
 def readMetadata(metadatafile):
     # unlike the readMetadata in merger.py, this one also stores the real_IDs
@@ -53,7 +52,7 @@ def searchInfo(index,stemmer,indexprefix,metadata,scorefunc,queries):
         
         results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
         top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:100]]
-        info[query] = { "total":len(results),"docs":top100}
+        info[query] = top100
     return info
 
 
@@ -107,7 +106,7 @@ if __name__=="__main__":
     parser.add_argument('--vector', dest='bm25', action='store_false')
     parser.set_defaults(bm25=True)
     parser.add_argument("--queries",help="Query file source",default="queries.txt")
-    parser.add_argument("--results",help="Result storage file ",default="queryResults.json")
+    parser.add_argument("--results",help="Result storage file ",default="queryResults.txt")
     
     args = parser.parse_args()
 
@@ -136,5 +135,9 @@ if __name__=="__main__":
 
     info = searchInfo(index,stemmer,args.prefix,metadata,scorefunc,queries)
     f = open(args.results,"w")
-    json.dump(info,f, indent=4)
+    for query,results in info.items():
+        f.write(f"{query}\n")
+        for ID,score in results:
+            f.write(f"{ID} {score}\n")
+        f.write("\n")
     f.close()
