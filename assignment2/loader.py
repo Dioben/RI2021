@@ -30,7 +30,7 @@ def loadIndex(masterfile):
     file = open(masterfile,"r")
     reader = csv.reader(file,delimiter=" ")
     for line in reader:
-        # line = (term, tf, fileNum, offset, idf)
+        # line = (term, df, fileNum, offset, idf)
         output[line[0]] = (line[1],line[2],line[3],line[4])
     file.close()
     return output
