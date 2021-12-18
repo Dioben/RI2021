@@ -1,11 +1,13 @@
 import argparse
 import bisect
 from support import *
-from time import time
+from time import perf_counter
 import math
 
 
 def readMetadata(metadatafile):
+    #NEW IN ASSIGNMENT 2
+    #get average doc length, doc count, each doc's length
     f = open(metadatafile,"r")
     data = f.readline().split(" ")
     data = {"avglen":float(data[1]),"totaldocs":int(data[0])}
@@ -15,7 +17,8 @@ def readMetadata(metadatafile):
     return data
 
 def parseTextLine(line):
-    #returns the current word and a (ID,FREQUENCY) tuple list
+    #NEW IN ASSIGNMENT 2
+    #returns the current word and a (ID,FREQUENCY) tuple list which now are only split and parsed once
     line = line.split(" ")
     freqs = []
     for doc in line[1:]:
@@ -59,6 +62,8 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
 def iterateAllFilesBM25(current,currentwords): #checks all currently open files, 
     #if they match lowest ranked word we add them to position calculations
     #and try move on, if they dont have more to give we delete them too
+    
+    #calculates BM25 score
     positions = {} 
     new_terms = set()
 
@@ -80,7 +85,7 @@ def iterateAllFilesBM25(current,currentwords): #checks all currently open files,
     
     positionkeys = sorted(positions.keys())
 
-    k = iterateAllFilesBM25.k #just shortening var names
+    k = iterateAllFilesBM25.k #just shortening var names, workaround to ensure same interface as the vector method
     b = iterateAllFilesBM25.b
     totaldocs = iterateAllFilesBM25.totaldocs
     avglen = iterateAllFilesBM25.avglen
@@ -102,6 +107,8 @@ def calcBM25(tf,df,N,k,b,avgdl,dl):
 def iterateAllFilesVector(current,currentwords): #checks all currently open files, 
     #if they match lowest ranked word we add them to position calculations
     #and try move on, if they dont have more to give we delete them too
+
+    #calculates vector score
     positions = {} 
     new_terms = set()
 
@@ -152,7 +159,7 @@ if __name__=="__main__":
 
     metadata = readMetadata(args.metadata)
 
-    timedelta = time()
+    timedelta = perf_counter()
     files = scanDirectory(args.prefix)
     if args.bm25:
         iteratefunc = iterateAllFilesBM25
@@ -165,5 +172,5 @@ if __name__=="__main__":
         iteratefunc = iterateAllFilesVector
 
     merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],iteratefunc)
-    timedelta = time() - timedelta
+    timedelta = perf_counter() - timedelta
     print(timedelta)

@@ -1,12 +1,14 @@
 import argparse
 import csv
-from time import time
+from time import perf_counter
 from support import *
 from nltk.stem import PorterStemmer
 import math
 
 
 def readMetadata(metadatafile):
+    #NEW IN ASSIGNMENT 2
+    #reads the metadata file, extracts all information as a map object
     # unlike the readMetadata in merger.py, this one also stores the real_IDs
     f = open(metadatafile,"r")
     data = f.readline().split(" ")
@@ -23,11 +25,12 @@ def readMetadata(metadatafile):
     return data
 
 def loadIndex(masterfile):
+    #now includes IDF
     output = {}
     file = open(masterfile,"r")
     reader = csv.reader(file,delimiter=" ")
     for line in reader:
-        # line = (term, df, fileNum, offset, score/weight)
+        # line = (term, df, fileNum, offset, idf)
         output[line[0]] = (line[1],line[2],line[3],line[4])
     file.close()
     return output
@@ -77,6 +80,7 @@ def searchFile(indexentry,indexprefix):
     return result
 
 def calcScoreBM25(termDocs, commonDocs, *_):
+    #NEW IN ASSIGNMENT 2
     result = []
     for doc in commonDocs:
         score = 0
@@ -86,6 +90,7 @@ def calcScoreBM25(termDocs, commonDocs, *_):
     return result
 
 def calcScoreVector(termDocs, commonDocs, totaldocs, index):
+    #NEW IN ASSIGNMENT 2
     result = []
     for doc in commonDocs:
         termWeights = []
@@ -118,11 +123,11 @@ if __name__=="__main__":
         stemmer = UselessStemmer()
 
     if args.timing:
-        timedelta = time()
+        timedelta = perf_counter()
     index = loadIndex(args.masterfile)
     metadata = readMetadata(args.metadata)
     if args.timing:
-        timedelta= time()-timedelta
+        timedelta= perf_counter()-timedelta
         print(timedelta)
         exit()
 

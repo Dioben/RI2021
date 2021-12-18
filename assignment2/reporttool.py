@@ -1,35 +1,10 @@
+#functionally a copy of loader.py that runs queries from a file and outputs the results into another file
 import argparse
-import csv
-from time import time
 from support import *
 from nltk.stem import PorterStemmer
-import math
 
-def readMetadata(metadatafile):
-    # unlike the readMetadata in merger.py, this one also stores the real_IDs
-    f = open(metadatafile,"r")
-    data = f.readline().split(" ")
-    data = {"avglen":float(data[1]),"totaldocs":int(data[0])}
-    doclens = []
-    realids = []
-    for line in f:
-        row = line.split(" ")
-        doclens.append(int(row[2]))
-        realids.append(row[1])
-    f.close()
-    data["lengths"] = doclens
-    data["realids"] = realids
-    return data
-
-def loadIndex(masterfile):
-    output = {}
-    file = open(masterfile,"r")
-    reader = csv.reader(file,delimiter=" ")
-    for line in reader:
-        # line = (term, df, fileNum, offset, score/weight)
-        output[line[0]] = (line[1],line[2],line[3],line[4])
-    file.close()
-    return output
+from loader import loadIndex,readMetadata,calcScoreBM25,calcScoreVector,searchFile
+        
 
 def searchInfo(index,stemmer,indexprefix,metadata,scorefunc,queries):
     
@@ -56,43 +31,6 @@ def searchInfo(index,stemmer,indexprefix,metadata,scorefunc,queries):
     return info
 
 
-def searchFile(indexentry,indexprefix):
-    #searches for term in file
-    #also turns gaps into docIDs
-    f = open(f"{indexprefix}{indexentry[1]}.ssv") 
-    f.seek(int(indexentry[2]))
-    line = f.readline()
-    f.close()
-    docs = [x.split(":") for x in line.split(" ")]
-    adder = 0
-    result = dict()
-    for num, value in docs:
-        num, value = int(num), float(value)
-        adder += num
-        result[adder] = value
-    return result
-
-def calcScoreBM25(termDocs, commonDocs, *_):
-    result = []
-    for doc in commonDocs:
-        score = 0
-        for tf, docValues in termDocs.values():
-            score += (docValues[doc] if doc in docValues else 0) * tf
-        result.append((doc, score))
-    return result
-
-def calcScoreVector(termDocs, commonDocs, totaldocs, index):
-    result = []
-    for doc in commonDocs:
-        termWeights = []
-        docWeights = []
-        for term, (tf, docValues) in termDocs.items():
-            termWeights.append((1 + math.log10(tf)) * math.log10(totaldocs/int(index[term][0])))
-            docWeights.append(docValues[doc] if doc in docValues else 0)
-        queryLen = math.sqrt(sum(w ** 2 for w in termWeights))
-        result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
-    return result
-        
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--masterfile",help="path to master file",default="masterindex.ssv")
@@ -115,14 +53,8 @@ if __name__=="__main__":
     else:
         stemmer = UselessStemmer()
 
-    if args.timing:
-        timedelta = time()
     index = loadIndex(args.masterfile)
     metadata = readMetadata(args.metadata)
-    if args.timing:
-        timedelta= time()-timedelta
-        print(timedelta)
-        exit()
 
     if args.bm25:
         scorefunc = calcScoreBM25
