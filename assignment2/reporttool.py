@@ -68,8 +68,7 @@ if __name__=="__main__":
     info = searchInfo(index,stemmer,args.prefix,metadata,scorefunc,queries)
     f = open(args.results,"w")
     for query,results in info.items():
-        f.write(f"{query}\n")
+        f.write(f"Q: {query}\n")
         for ID,score in results:
-            f.write(f"{ID} {score}\n")
-        f.write("\n")
+            f.write(f"{ID}\n")
     f.close()
