@@ -2,6 +2,7 @@
 import argparse
 from support import *
 from nltk.stem import PorterStemmer
+import math
 
 from loader import loadIndex,readMetadataStage1,readMetadataStage2,getFileReader,calcScoreBM25,calcScoreVector,searchFile
 
@@ -31,10 +32,6 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries):
         info[query] = top100
     return info
 
-def normalizeCos(value,doc):
-    
-    return value/cosLengths[doc] #using a global variable seems to make import compatibility terrible
-
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--masterfile",help="path to master file",default="masterindex.ssv")
@@ -62,10 +59,12 @@ if __name__=="__main__":
     if args.bm25:
         scorefunc = calcScoreBM25
     else:
-        calcScoreVector.documentNormalization = normalizeCos
         scorefunc = calcScoreVector
+        calcScoreVector.termFreqFunc = lambda tf: 1 + math.log10(tf)
+        calcScoreVector.docFreqFunc = lambda N, df: math.log10(N/df)
+        calcScoreVector.normFunc = lambda termWeights: math.sqrt(sum(w ** 2 for w in termWeights))
         
-        cosLengths= readMetadataStage2(args.metadata2)
+        calcScoreVector.cosLengths = readMetadataStage2(args.metadata2)
 
     getFileReader.prefix = args.prefix
 

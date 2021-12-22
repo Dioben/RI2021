@@ -6,7 +6,6 @@ from nltk.stem import PorterStemmer
 import math
 
 
-cosLengths = []
 readers = {}
 
 def getFileReader(key):
@@ -118,24 +117,10 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
         docWeights = []
         for term, (tf, docValues) in termDocs.items():
             termWeights.append(calcScoreVector.termFreqFunc(tf) * calcScoreVector.docFreqFunc(totaldocs, int(index[term][0])))
-            docWeights.append( docValues[doc]/cosLengths[doc] if doc in docValues else 0)
+            docWeights.append( docValues[doc]/calcScoreVector.cosLengths[doc] if doc in docValues else 0)
         queryLen = calcScoreVector.normFunc(termWeights)
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
-
-def readNextNumber(filekey,offset):
-    #NEW IN ASSIGNMENT 2
-    #GO STRAIGHT TO A DOCUMENT'S WEIGHT FOR TERM, READ VALUE
-    #ONLY USED FOR COSINE NORMALIZATION
-    f = getFileReader(filekey)
-    f.seek(offset)
-    value = ""
-    while True:
-        char = f.read(1)
-        if char.isspace():
-            break
-        value+=char
-    return float(value)
 
 
 if __name__=="__main__":
@@ -207,7 +192,7 @@ if __name__=="__main__":
         elif (args.norm[0] == "u"):
             calcScoreVector.normFunc = lambda _: args.norm[1]
         
-        cosLengths = readMetadataStage2(args.metadata2)
+        calcScoreVector.cosLengths = readMetadataStage2(args.metadata2)
 
     getFileReader.prefix = args.prefix
 
