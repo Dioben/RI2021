@@ -50,10 +50,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         gapsize = len(gapsandweights)
         for i, (numb,score) in enumerate(gapsandweights):
             doc_id += numb
-            if doc_id in global_doc_index:
-                global_doc_index[doc_id]+= score**2
-            else:
-                global_doc_index[doc_id] = score**2
+            global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
             
             filewriter.write(f"{numb}:{score}"+("" if i + 1 == gapsize else " "))
 
@@ -74,7 +71,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         if key not in global_doc_index:
             metadatafile.write("0\n")
         else:
-            metadatafile.write(f"{math.sqrt(global_doc_index[key])}\n")
+            metadatafile.write(f"{merge.normFinalFunc(global_doc_index[key])}\n")
     filewriter.close()
     metadatafile.close()
     masterindexfile.close()
@@ -150,9 +147,10 @@ def iterateAllFilesVector(current,currentwords): #checks all currently open file
                 new_terms.add(currentwords[x]["word"])
     
     positionkeys = sorted(positions.keys())
-    gaps = [(positionkeys[0], (1+math.log10(positions[positionkeys[0]])))]
+    df = len(positionkeys)
+    gaps = [( positionkeys[0], iterateAllFilesVector.termFreqFunc(positions[positionkeys[0]])*iterateAllFilesVector.docFreqFunc(df) )]
     for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], (1+math.log10(positions[positionkeys[i]])) )]
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], iterateAllFilesVector.termFreqFunc(positions[positionkeys[i]])*iterateAllFilesVector.docFreqFunc(df) )]
    
     
     return currentwords,gaps,new_terms
@@ -170,8 +168,22 @@ if __name__=="__main__":
     parser.set_defaults(bm25=True)
     parser.add_argument('--BM25-k',type=float,default="1.2")
     parser.add_argument('--BM25-b',type=float,default="0.75")
+    parser.add_argument('--term-freq',type=str,default="l")
+    parser.add_argument('--doc-freq',type=str,default="n")
+    parser.add_argument('--norm',type=str,nargs="+",default=["c"])
     args = parser.parse_args()
 
+    if (args.term_freq not in ["n", "l", "b"]):
+        raise ValueError("Document term frequency should be in [n, l, b]")
+    if (args.norm[0] not in ["n", "c", "u"]):
+        raise ValueError("Document normalization should be in [n, c, u]")
+    if (args.norm[0] in ["u"]):
+        try:
+            args.norm[1] = float(args.norm[1])
+        except:
+            raise ValueError("When document normalization is u, an additional float value is required")
+    if (args.doc_freq not in ["n", "t"]):
+        raise ValueError("Document document frequency should be in [n, t]")
 
     metadata = readMetadata(args.metadata)
 
@@ -184,8 +196,34 @@ if __name__=="__main__":
         iterateAllFilesBM25.totaldocs = metadata['totaldocs']
         iterateAllFilesBM25.avglen = metadata["avglen"]
         iterateAllFilesBM25.lengths = metadata["lengths"]
+        merge.normAddFunc = lambda *_: 0
+        merge.normFinalFunc = lambda _: 1
     else:
         iteratefunc = iterateAllFilesVector
+        
+        if (args.term_freq == "n"):
+            iterateAllFilesVector.termFreqFunc = lambda tf: tf
+        elif (args.term_freq == "l"):
+            iterateAllFilesVector.termFreqFunc = lambda tf: 1 + math.log10(tf)
+        elif (args.term_freq == "b"):
+            iterateAllFilesVector.termFreqFunc = lambda _: 1
+        
+        if (args.doc_freq == "n"):
+            iterateAllFilesVector.docFreqFunc = lambda _: 1
+        elif (args.doc_freq == "t"):
+            iterateAllFilesVector.docFreqFunc = lambda df: math.log10(metadata['totaldocs']/df)
+            
+        if (args.norm[0] == "n"):
+            merge.normAddFunc = lambda *_: 0 # doesn't matter
+            merge.normFinalFunc = lambda _: 1
+        elif (args.norm[0] == "c"):
+            merge.normAddFunc = lambda doc_id,global_doc_index,score: \
+                global_doc_index[doc_id]+score**2 if doc_id in global_doc_index else score**2
+            merge.normFinalFunc = lambda adds: math.sqrt(adds)
+        elif (args.norm[0] == "u"):
+            merge.normAddFunc = lambda *_: 0 # doesn't matter
+            merge.normFinalFunc = lambda _: args.norm[1]
+        
 
     merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],iteratefunc,args.new_metadata)
     timedelta = perf_counter() - timedelta

@@ -6,7 +6,6 @@ from nltk.stem import PorterStemmer
 import math
 
 
-cosLengths = []
 readers = {}
 
 def getFileReader(key):
@@ -112,34 +111,16 @@ def calcScoreBM25(termDocs, commonDocs, *_):
 
 def calcScoreVector(termDocs, commonDocs, totaldocs, index):
     #NEW IN ASSIGNMENT 2
-    docnorm = calcScoreVector.documentNormalization
     result = []
     for doc in commonDocs:
         termWeights = []
         docWeights = []
         for term, (tf, docValues) in termDocs.items():
-            termWeights.append((1 + math.log10(tf)) * math.log10(totaldocs/int(index[term][0])))
-            docWeights.append( docnorm(docValues[doc],doc) if doc in docValues else 0)
-        queryLen = math.sqrt(sum(w ** 2 for w in termWeights))
+            termWeights.append(calcScoreVector.termFreqFunc(tf) * calcScoreVector.docFreqFunc(totaldocs, int(index[term][0])))
+            docWeights.append( docValues[doc]/calcScoreVector.normDenums[doc] if doc in docValues else 0)
+        queryLen = calcScoreVector.normFunc(termWeights)
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
-
-def normalizeCos(value,doc):
-    return value/cosLengths[doc]
-
-def readNextNumber(filekey,offset):
-    #NEW IN ASSIGNMENT 2
-    #GO STRAIGHT TO A DOCUMENT'S WEIGHT FOR TERM, READ VALUE
-    #ONLY USED FOR COSINE NORMALIZATION
-    f = getFileReader(filekey)
-    f.seek(offset)
-    value = ""
-    while True:
-        char = f.read(1)
-        if char.isspace():
-            break
-        value+=char
-    return float(value)
 
 
 if __name__=="__main__":
@@ -156,7 +137,22 @@ if __name__=="__main__":
     parser.add_argument('--BM25', dest='bm25', action='store_true')
     parser.add_argument('--vector', dest='bm25', action='store_false')
     parser.set_defaults(bm25=True)
+    parser.add_argument('--term-freq',type=str,default="l")
+    parser.add_argument('--doc-freq',type=str,default="t")
+    parser.add_argument('--norm',type=str,nargs="+",default=["c"])
     args = parser.parse_args()
+    
+    if (args.term_freq not in ["n", "l", "b"]):
+        raise ValueError("Query term frequency should be in [n, l, b]")
+    if (args.norm[0] not in ["n", "c", "u"]):
+        raise ValueError("Query normalization should be in [n, c, u]")
+    if (args.norm[0] in ["u"]):
+        try:
+            args.norm[1] = float(args.norm[1])
+        except:
+            raise ValueError("When query normalization is u, an additional float value is required")
+    if (args.doc_freq not in ["n", "t"]):
+        raise ValueError("Query document frequency should be in [n, t]")
 
     if args.stem:
         stemmer = PorterStemmer()
@@ -175,10 +171,28 @@ if __name__=="__main__":
     if args.bm25:
         scorefunc = calcScoreBM25
     else:
-        calcScoreVector.documentNormalization = normalizeCos
         scorefunc = calcScoreVector
         
-        cosLengths = readMetadataStage2(args.metadata2)
+        if (args.term_freq == "n"):
+            calcScoreVector.termFreqFunc = lambda tf: tf
+        elif (args.term_freq == "l"):
+            calcScoreVector.termFreqFunc = lambda tf: 1 + math.log10(tf)
+        elif (args.term_freq == "b"):
+            calcScoreVector.termFreqFunc = lambda _: 1
+        
+        if (args.doc_freq == "n"):
+            calcScoreVector.docFreqFunc = lambda *_: 1
+        elif (args.doc_freq == "t"):
+            calcScoreVector.docFreqFunc = lambda N, df: math.log10(N/df)
+        
+        if (args.norm[0] == "n"):
+            calcScoreVector.normFunc = lambda _: 1
+        elif (args.norm[0] == "c"):
+            calcScoreVector.normFunc = lambda termWeights: math.sqrt(sum(w ** 2 for w in termWeights))
+        elif (args.norm[0] == "u"):
+            calcScoreVector.normFunc = lambda _: args.norm[1]
+        
+        calcScoreVector.normDenums = readMetadataStage2(args.metadata2)
 
     getFileReader.prefix = args.prefix
 
