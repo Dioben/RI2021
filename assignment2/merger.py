@@ -47,17 +47,16 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         global_index_struct.append((current,docsforterm,curr_file,filewriter.tell(),math.log10(totaldocs/docsforterm))) #update global index
 
         doc_id=0
+        gapsize = len(gapsandweights)
         for i, (numb,score) in enumerate(gapsandweights):
             doc_id += numb
-            filewriter.write(f"{numb}:")
-            
-            doc_index_offset = filewriter.tell()
             if doc_id in global_doc_index:
-                global_doc_index[doc_id].append((curr_file,doc_index_offset))
+                global_doc_index[doc_id]+= score**2
             else:
-                global_doc_index[doc_id] = [(curr_file,doc_index_offset)]
+                global_doc_index[doc_id] = score**2
+            
+            filewriter.write(f"{numb}:{score}"+("" if i + 1 == gapsize else " "))
 
-            filewriter.write(f"{score}"+("" if i + 1 == len(gapsandweights) else " "))
         filewriter.write("\n")
 
         consecutive_writes+=1
@@ -72,7 +71,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         masterindexfile.write(outputstring)
     metadatafile = open(metadataoutput,"w")
     for key in sorted(global_doc_index.keys()):
-        metadatafile.write(" ".join([f"{x[0]},{x[1]}" for x in global_doc_index[key]]) +"\n")
+        metadatafile.write(f"{math.sqrt(global_doc_index[key])}\n")
     filewriter.close()
     metadatafile.close()
     masterindexfile.close()
