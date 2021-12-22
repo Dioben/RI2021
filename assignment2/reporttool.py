@@ -3,10 +3,11 @@ import argparse
 from support import *
 from nltk.stem import PorterStemmer
 
-from loader import loadIndex,readMetadata,calcScoreBM25,calcScoreVector,searchFile
-        
+from loader import loadIndex,readMetadataStage1,readMetadataStage2,getFileReader,calcScoreBM25,calcScoreVector,searchFile
 
-def searchInfo(index,stemmer,indexprefix,metadata,scorefunc,queries):
+cosLengths = []
+
+def searchInfo(index,stemmer,metadata,scorefunc,queries):
     
     info = {}
     for query in queries:
@@ -17,7 +18,7 @@ def searchInfo(index,stemmer,indexprefix,metadata,scorefunc,queries):
         for word in keywords:
             try:
                 if word not in termDocs:
-                    docs = searchFile(index[stemmer.stem(word)],indexprefix)
+                    docs = searchFile(index[stemmer.stem(word)])
                     allDocs.update(docs.keys())
                     termDocs[word] = (1, docs)
                 else:
@@ -30,22 +31,24 @@ def searchInfo(index,stemmer,indexprefix,metadata,scorefunc,queries):
         info[query] = top100
     return info
 
+def normalizeCos(value,doc):
+    
+    return value/cosLengths[doc] #using a global variable seems to make import compatibility terrible
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--masterfile",help="path to master file",default="masterindex.ssv")
     parser.add_argument("--metadata",help="path to stage 1 metadata",default="stage1metadata.ssv")
+    parser.add_argument("--metadata2",help="path to stage 2 metadata",default="stage2metadata.ssv")
     parser.add_argument("--prefix",help="Index file prefix",default="mergedindex")
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
     parser.set_defaults(stem=True)
-    parser.set_defaults(timing=False)
     parser.add_argument('--BM25', dest='bm25', action='store_true')
     parser.add_argument('--vector', dest='bm25', action='store_false')
-    parser.set_defaults(bm25=True)
     parser.add_argument("--queries",help="Query file source",default="queries.txt")
     parser.add_argument("--results",help="Result storage file ",default="queryResults.txt")
-    
+    parser.set_defaults(bm25=True)
     args = parser.parse_args()
 
     if args.stem:
@@ -54,18 +57,24 @@ if __name__=="__main__":
         stemmer = UselessStemmer()
 
     index = loadIndex(args.masterfile)
-    metadata = readMetadata(args.metadata)
+    metadata = readMetadataStage1(args.metadata)
 
     if args.bm25:
         scorefunc = calcScoreBM25
     else:
+        calcScoreVector.documentNormalization = normalizeCos
         scorefunc = calcScoreVector
+        
+        cosLengths= readMetadataStage2(args.metadata2)
+
+    getFileReader.prefix = args.prefix
+
 
     f = open(args.queries,"r")
     queries = f.read().split("\n")
     f.close()
 
-    info = searchInfo(index,stemmer,args.prefix,metadata,scorefunc,queries)
+    info = searchInfo(index,stemmer,metadata,scorefunc,queries)
     f = open(args.results,"w")
     for query,results in info.items():
         f.write(f"Q: {query}\n")

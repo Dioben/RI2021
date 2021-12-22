@@ -67,8 +67,11 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]} {item[4]}\n"
         masterindexfile.write(outputstring)
     metadatafile = open(metadataoutput,"w")
-    for key in sorted(global_doc_index.keys()):
-        metadatafile.write(f"{merge.normFinalFunc(global_doc_index[key])}\n")
+    for key in range(max(global_doc_index.keys())+1):
+        if key not in global_doc_index:
+            metadatafile.write("0\n")
+        else:
+            metadatafile.write(f"{merge.normFinalFunc(global_doc_index[key])}\n")
     filewriter.close()
     metadatafile.close()
     masterindexfile.close()

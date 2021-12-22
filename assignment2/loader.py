@@ -6,7 +6,7 @@ from nltk.stem import PorterStemmer
 import math
 
 
-cosLengths = {}
+cosLengths = []
 readers = {}
 
 def getFileReader(key):
