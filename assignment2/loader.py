@@ -117,7 +117,7 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
         docWeights = []
         for term, (tf, docValues) in termDocs.items():
             termWeights.append(calcScoreVector.termFreqFunc(tf) * calcScoreVector.docFreqFunc(totaldocs, int(index[term][0])))
-            docWeights.append( docValues[doc]/calcScoreVector.cosLengths[doc] if doc in docValues else 0)
+            docWeights.append( docValues[doc]/calcScoreVector.normDenums[doc] if doc in docValues else 0)
         queryLen = calcScoreVector.normFunc(termWeights)
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
@@ -192,7 +192,7 @@ if __name__=="__main__":
         elif (args.norm[0] == "u"):
             calcScoreVector.normFunc = lambda _: args.norm[1]
         
-        calcScoreVector.cosLengths = readMetadataStage2(args.metadata2)
+        calcScoreVector.normDenums = readMetadataStage2(args.metadata2)
 
     getFileReader.prefix = args.prefix
 

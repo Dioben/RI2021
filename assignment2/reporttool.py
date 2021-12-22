@@ -64,7 +64,7 @@ if __name__=="__main__":
         calcScoreVector.docFreqFunc = lambda N, df: math.log10(N/df)
         calcScoreVector.normFunc = lambda termWeights: math.sqrt(sum(w ** 2 for w in termWeights))
         
-        calcScoreVector.cosLengths = readMetadataStage2(args.metadata2)
+        calcScoreVector.normDenums = readMetadataStage2(args.metadata2)
 
     getFileReader.prefix = args.prefix
 
