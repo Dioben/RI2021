@@ -52,9 +52,9 @@ This program supports the following parameters:
 + **--BM25/vector**: Toggle between BM25 and vector space ranking, default is BM25
 + **--BM25-k**: The k parameter for BM25 ranking, default is 1.2
 + **--BM25-b**: The b parameter for BM25 ranking, default is 0.75
-+ **--term-freq**: The document term frequency letter of the SMART notation for the vector space ranking, default is l
-+ **--doc-freq**: The document document frequency letter of the SMART notation for the vector space ranking, default is n
-+ **--norm**: The document normalization letter of the SMART notation for the vector space ranking (pivoted unique normalization uses 1 extra argument for the value), default is c
++ **--term-freq**: The document term frequency letter of the SMART notation for the vector space ranking, possible values are [n, l, b], default is l
++ **--doc-freq**: The document document frequency letter of the SMART notation for the vector space ranking, possible values are [n, t], default is n
++ **--norm**: The document normalization letter of the SMART notation for the vector space ranking, possible values are [n, c, u] (pivoted unique normalization (u) uses 1 extra argument for the value), default is c
 
 ### Features added for 2nd assigment:
 + Master index now includes IDF data.  
@@ -80,9 +80,9 @@ This program supports the following parameters:
 + **--metadata**: File to read stage 1 metadata from, default is stage1metadata.ssv
 + **--metadata2**: File to read stage 2 metadata from, default is stage2metadata.ssv
 + **--BM25/vector**: Toggle between BM25 and vector space ranking, default is BM25
-+ **--term-freq**: The query term frequency letter of the SMART notation for the vector space ranking, default is l
-+ **--doc-freq**: The query document frequency letter of the SMART notation for the vector space ranking, default is n
-+ **--norm**: The query normalization letter of the SMART notation for the vector space ranking (pivoted unique normalization uses 1 extra argument for the value), default is c
++ **--term-freq**: The query term frequency letter of the SMART notation for the vector space ranking, possible values are [n, l, b], default is l
++ **--doc-freq**: The query document frequency letter of the SMART notation for the vector space ranking, possible values are [n, t], default is n
++ **--norm**: The query normalization letter of the SMART notation for the vector space ranking, possible values are [n, c, u] (pivoted unique normalization (u) uses 1 extra argument for the value), default is c
 
 ### Features added for 2nd assigment:
 + Now loads IDF data from metadata.
