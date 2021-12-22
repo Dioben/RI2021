@@ -39,7 +39,7 @@ Whenever a file runs out of content it is removed from the file pool.
 This process leads to the generation of 3 types of files:
 1. An index file that has a term, document appearance count, filenumber, and file offset per line
 2. Merged index files, containing \n-separated lists of value pairs which are document IDs and term scores, and use gaps for storage efficiency   
-3. A metadata file that matches each doc to pointers to their weights, used for cosine normalization
+3. A metadata file that contains the cosine normalization denominator for every file
 
 
 This program supports the following parameters:
@@ -57,7 +57,7 @@ This program supports the following parameters:
 + Master index now includes IDF data.  
 + Weights are now added to the index files, with no normalization.  
 
-Outputs a metadata file where each line matches a doc ID to the locations of their weights in (file,offset) format
+Outputs a metadata file where each line contains the cosine normalization denominator of the matching file  
 Additionally file line parsing is no longer done several times, which has led to a performance increase eclipsed by the downgrade caused by performing score calculations.
 
 ### loader.py
