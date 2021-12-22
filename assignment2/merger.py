@@ -50,7 +50,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         gapsize = len(gapsandweights)
         for i, (numb,score) in enumerate(gapsandweights):
             doc_id += numb
-            global_doc_index[doc_id] = iterateAllFilesVector.normAddFunc(doc_id,global_doc_index,score)
+            global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
             
             filewriter.write(f"{numb}:{score}"+("" if i + 1 == gapsize else " "))
 
@@ -68,7 +68,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         masterindexfile.write(outputstring)
     metadatafile = open(metadataoutput,"w")
     for key in sorted(global_doc_index.keys()):
-        metadatafile.write(f"{iterateAllFilesVector.normFinalFunc(global_doc_index[key])}\n")
+        metadatafile.write(f"{merge.normFinalFunc(global_doc_index[key])}\n")
     filewriter.close()
     metadatafile.close()
     masterindexfile.close()
@@ -144,9 +144,10 @@ def iterateAllFilesVector(current,currentwords): #checks all currently open file
                 new_terms.add(currentwords[x]["word"])
     
     positionkeys = sorted(positions.keys())
-    gaps = [(positionkeys[0], (iterateAllFilesVector.termFreqFunc(positions[positionkeys[0]])))]
+    df = len(positionkeys)
+    gaps = [( positionkeys[0], iterateAllFilesVector.termFreqFunc(positions[positionkeys[0]])*iterateAllFilesVector.docFreqFunc(df) )]
     for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], (iterateAllFilesVector.termFreqFunc(positions[positionkeys[i]])) )]
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], iterateAllFilesVector.termFreqFunc(positions[positionkeys[i]])*iterateAllFilesVector.docFreqFunc(df) )]
    
     
     return currentwords,gaps,new_terms
@@ -164,19 +165,22 @@ if __name__=="__main__":
     parser.set_defaults(bm25=True)
     parser.add_argument('--BM25-k',type=float,default="1.2")
     parser.add_argument('--BM25-b',type=float,default="0.75")
-    parser.add_argument('--doc-term-freq',type=str,default="l")
-    parser.add_argument('--doc-norm',type=str,nargs="+",default=["c"])
+    parser.add_argument('--term-freq',type=str,default="l")
+    parser.add_argument('--doc-freq',type=str,default="n")
+    parser.add_argument('--norm',type=str,nargs="+",default=["c"])
     args = parser.parse_args()
 
-    if (args.doc_term_freq not in ["n", "l", "b"]):
+    if (args.term_freq not in ["n", "l", "b"]):
         raise ValueError("Document term frequency should be in [n, l, b]")
-    if (args.doc_norm[0] not in ["n", "c", "u"]):
+    if (args.norm[0] not in ["n", "c", "u"]):
         raise ValueError("Document normalization should be in [n, c, u]")
-    if (args.doc_norm[0] in ["u"]):
+    if (args.norm[0] in ["u"]):
         try:
-            args.doc_norm[1] = float(args.doc_norm[1])
+            args.norm[1] = float(args.norm[1])
         except:
             raise ValueError("When doc-norm is u, an additional float value is required")
+    if (args.doc_freq not in ["n", "t"]):
+        raise ValueError("Document term frequency should be in [n, l, b]")
 
     metadata = readMetadata(args.metadata)
 
@@ -189,24 +193,33 @@ if __name__=="__main__":
         iterateAllFilesBM25.totaldocs = metadata['totaldocs']
         iterateAllFilesBM25.avglen = metadata["avglen"]
         iterateAllFilesBM25.lengths = metadata["lengths"]
+        merge.normAddFunc = lambda *_: 0
+        merge.normFinalFunc = lambda _: 1
     else:
         iteratefunc = iterateAllFilesVector
-        if (args.doc_term_freq == "n"):
+        
+        if (args.term_freq == "n"):
             iterateAllFilesVector.termFreqFunc = lambda tf: tf
-        elif (args.doc_term_freq == "l"):
+        elif (args.term_freq == "l"):
             iterateAllFilesVector.termFreqFunc = lambda tf: 1 + math.log10(tf)
-        elif (args.doc_term_freq == "b"):
+        elif (args.term_freq == "b"):
             iterateAllFilesVector.termFreqFunc = lambda _: 1
-        if (args.doc_norm[0] == "n"):
-            iterateAllFilesVector.normAddFunc = lambda *_: 0 # doesn't matter
-            iterateAllFilesVector.normFinalFunc = lambda _: 1
-        elif (args.doc_norm[0] == "c"):
-            iterateAllFilesVector.normAddFunc = lambda doc_id,global_doc_index,score: \
+        
+        if (args.doc_freq == "n"):
+            iterateAllFilesVector.docFreqFunc = lambda _: 1
+        elif (args.doc_freq == "t"):
+            iterateAllFilesVector.docFreqFunc = lambda df: math.log10(metadata['totaldocs']/df)
+            
+        if (args.norm[0] == "n"):
+            merge.normAddFunc = lambda *_: 0 # doesn't matter
+            merge.normFinalFunc = lambda _: 1
+        elif (args.norm[0] == "c"):
+            merge.normAddFunc = lambda doc_id,global_doc_index,score: \
                 global_doc_index[doc_id]+score**2 if doc_id in global_doc_index else score**2
-            iterateAllFilesVector.normFinalFunc = lambda adds: math.sqrt(adds)
-        elif (args.doc_norm[0] == "u"):
-            iterateAllFilesVector.normAddFunc = lambda *_: 0 # doesn't matter
-            iterateAllFilesVector.normFinalFunc = lambda _: 1/args.doc_norm[1]
+            merge.normFinalFunc = lambda adds: math.sqrt(adds)
+        elif (args.norm[0] == "u"):
+            merge.normAddFunc = lambda *_: 0 # doesn't matter
+            merge.normFinalFunc = lambda _: args.norm[1]
         
 
     merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],iteratefunc,args.new_metadata)
