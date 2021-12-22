@@ -147,15 +147,9 @@ def iterateAllFilesVector(current,currentwords): #checks all currently open file
                 new_terms.add(currentwords[x]["word"])
     
     positionkeys = sorted(positions.keys())
-    denum = sum([(1+math.log10(x))**2 for x in positions.values()])
-    denum = math.sqrt(denum)
-    gaps = [(positionkeys[0],
-                            (1+math.log10(
-                                positions[positionkeys[0]]
-                                ))/denum
-            )]
+    gaps = [(positionkeys[0], (1+math.log10(positions[positionkeys[0]])))]
     for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], (1+math.log10(positions[positionkeys[i]]))/denum )]
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], (1+math.log10(positions[positionkeys[i]])) )]
    
     
     return currentwords,gaps,new_terms
