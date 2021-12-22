@@ -36,9 +36,10 @@ The program then iterates over every file simultaneously for as long as there ar
 The queue is fed new terms as files are iterated.\
 Whenever a file runs out of content it is removed from the file pool.
 
-This process leads to the generation of 2 types of files:
+This process leads to the generation of 3 types of files:
 1. An index file that has a term, document appearance count, filenumber, and file offset per line
 2. Merged index files, containing \n-separated lists of value pairs which are document IDs and term scores, and use gaps for storage efficiency   
+3. A metadata file that matches each doc to pointers to their weights, used for cosine normalization
 
 
 This program supports the following parameters:
@@ -47,19 +48,23 @@ This program supports the following parameters:
 + **--outputprefix**: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
 + **--masterfile**: "Master" output file name, default is "masterindex.ssv"
 + **--metadata**: File to read stage 1 metadata from, default is stage1metadata.ssv
++ **--new-metadata**: File to write stage 2 metadata to, default is stage2metadata.ssv
 + **--BM25/vector**: Toggle between BM25 and lnc.ltc scoring, default is BM25
 + **--BM25-k**: The k parameter for BM25 scoring, default is 1.2
 + **--BM25-b**: The b parameter for BM25 scoring, default is 0.75
 
 ### Features added for 2nd assigment:
 + Master index now includes IDF data.  
-+ Weights are now added to the index files, pre-normalized in vector's case.  
++ Weights are now added to the index files, with no normalization.  
 
+Outputs a metadata file where each line matches a doc ID to the locations of their weights in (file,offset) format
 Additionally file line parsing is no longer done several times, which has led to a performance increase eclipsed by the downgrade caused by performing score calculations.
 
 ### loader.py
 On startup, loads the master index file into a map, with terms as keys, as well as the length and real ID of each document from the metadata file.\
-Terms can then be searched in a command line interface, opening the "mergedindex" files as needed.\
+If cosine normalization is enabled the stage 2 metadata file will be read as well.  
+Terms can then be searched in a command line interface.
+The mergedindex files are now only opened once each and kept in a pool.  
 Use of multiple space-separated terms is supported. Each term's document set will be joined and the final score values will be decided based on all keywords.
 
 This program supports the following parameters:
@@ -68,8 +73,11 @@ This program supports the following parameters:
 + **--stemmer/no-stemmer**: Toggles Stemming, default is using nltk PorterStemmer
 + **--timer-only**: Loads index and exits without going into interactive search mode
 + **--metadata**: File to read stage 1 metadata from, default is stage1metadata.ssv
++ **--metadata2**: File to read stage 2 metadata from, default is stage2metadata.ssv
 + **--BM25/vector**: Toggle between BM25 and lnc.ltc scoring, default is BM25
 
 ### Features added for 2nd assigment:
 + Now loads IDF data from metadata.
-+ Allows for searching using BM25 or vector scoring. 
++ Allows for searching using BM25 or vector scoring.
++ File pool system
++ Customizable Normalization
