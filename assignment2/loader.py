@@ -192,7 +192,9 @@ if __name__=="__main__":
     if args.bm25:
         scorefunc = calcScoreBM25
     else:
+        calcScoreVector.documentNormalization = normalizeCos
         scorefunc = calcScoreVector
+        
         stage2metadata = readMetadataStage2(args.metadata2)
 
     getFileReader.prefix = args.prefix
