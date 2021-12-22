@@ -48,9 +48,9 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
 
         doc_id=0
         gapsstring=""
-        for numb,score in gapsandweights:
+        for i, (numb,score) in enumerate(gapsandweights):
             doc_id += numb
-            gapsstring += f"{numb}:"
+            filewriter.write(f"{numb}:")
             
             doc_index_offset = filewriter.tell()
             if doc_id in global_doc_index:
@@ -58,7 +58,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
             else:
                 global_doc_index[doc_id] = [(curr_file,doc_index_offset)]
 
-            gapsstring += f"{score} "
+            filewriter.write(f"{score}"+("" if i + 1 == len(gapsandweights) else " "))
         filewriter.write(gapsstring[:-1]+"\n")
 
         consecutive_writes+=1
