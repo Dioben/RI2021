@@ -39,7 +39,7 @@ Whenever a file runs out of content it is removed from the file pool.
 This process leads to the generation of 3 types of files:
 1. An index file that has a term, document appearance count, filenumber, and file offset per line
 2. Merged index files, containing \n-separated lists of value pairs which are document IDs and term scores, and use gaps for storage efficiency   
-3. A metadata file that contains the cosine normalization denominator for every file
+3. A metadata file that contains the normalization denominator for every file
 
 
 This program supports the following parameters:
