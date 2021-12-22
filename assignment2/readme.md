@@ -49,13 +49,18 @@ This program supports the following parameters:
 + **--masterfile**: "Master" output file name, default is "masterindex.ssv"
 + **--metadata**: File to read stage 1 metadata from, default is stage1metadata.ssv
 + **--new-metadata**: File to write stage 2 metadata to, default is stage2metadata.ssv
-+ **--BM25/vector**: Toggle between BM25 and lnc.ltc scoring, default is BM25
-+ **--BM25-k**: The k parameter for BM25 scoring, default is 1.2
-+ **--BM25-b**: The b parameter for BM25 scoring, default is 0.75
++ **--BM25/vector**: Toggle between BM25 and vector space ranking, default is BM25
++ **--BM25-k**: The k parameter for BM25 ranking, default is 1.2
++ **--BM25-b**: The b parameter for BM25 ranking, default is 0.75
++ **--term-freq**: The document term frequency letter of the SMART notation for the vector space ranking, default is l
++ **--doc-freq**: The document document frequency letter of the SMART notation for the vector space ranking, default is n
++ **--norm**: The document normalization letter of the SMART notation for the vector space ranking (pivoted unique normalization uses 1 extra argument for the value), default is c
 
 ### Features added for 2nd assigment:
 + Master index now includes IDF data.  
++ Allows for indexing using BM25 or vector space ranking.
 + Weights are now added to the index files, with no normalization.  
++ Many schemas can be used for the vector space ranking.
 
 Outputs a metadata file where each line contains the cosine normalization denominator of the matching file  
 Additionally file line parsing is no longer done several times, which has led to a performance increase eclipsed by the downgrade caused by performing score calculations.
@@ -74,10 +79,14 @@ This program supports the following parameters:
 + **--timer-only**: Loads index and exits without going into interactive search mode
 + **--metadata**: File to read stage 1 metadata from, default is stage1metadata.ssv
 + **--metadata2**: File to read stage 2 metadata from, default is stage2metadata.ssv
-+ **--BM25/vector**: Toggle between BM25 and lnc.ltc scoring, default is BM25
++ **--BM25/vector**: Toggle between BM25 and vector space ranking, default is BM25
++ **--term-freq**: The query term frequency letter of the SMART notation for the vector space ranking, default is l
++ **--doc-freq**: The query document frequency letter of the SMART notation for the vector space ranking, default is n
++ **--norm**: The query normalization letter of the SMART notation for the vector space ranking (pivoted unique normalization uses 1 extra argument for the value), default is c
 
 ### Features added for 2nd assigment:
 + Now loads IDF data from metadata.
-+ Allows for searching using BM25 or vector scoring.
++ Allows for searching using BM25 or vector space ranking.
 + File pool system
 + Customizable Normalization
++ Many schemas can be used for the vector space ranking.
