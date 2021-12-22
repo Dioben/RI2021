@@ -62,12 +62,12 @@ This program supports the following parameters:
 + Weights are now added to the index files, with no normalization.  
 + Many schemas can be used for the vector space ranking.
 
-Outputs a metadata file where each line contains the cosine normalization denominator of the matching file  
+Outputs a metadata file where each line contains the normalization denominator of the matching file  
 Additionally file line parsing is no longer done several times, which has led to a performance increase eclipsed by the downgrade caused by performing score calculations.
 
 ### loader.py
 On startup, loads the master index file into a map, with terms as keys, as well as the length and real ID of each document from the metadata file.\
-If cosine normalization is enabled the stage 2 metadata file will be read as well.  
+If normalization is enabled the stage 2 metadata file will be read as well.  
 Terms can then be searched in a command line interface.
 The mergedindex files are now only opened once each and kept in a pool.  
 Use of multiple space-separated terms is supported. Each term's document set will be joined and the final score values will be decided based on all keywords.
@@ -90,3 +90,14 @@ This program supports the following parameters:
 + File pool system
 + Customizable Normalization
 + Many schemas can be used for the vector space ranking.
+
+## Results
+The results for each query in the **queries.txt** file, using the BM25 and the vector space ranking file, are in the **queryResultsBM25.txt** and in the **queryResultsVector.txt** files respectively.  
+The commands used to obtain these files are:
+```
+python3 indexer.py --no-stemmer --stopsize 50 --source amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz
+python3 merger.py
+python3 reporttool.py --no-stemmer --results queryResultsBM25.txt
+python3 merger.py --vector
+python3 reporttool.py --no-stemmer --vector --results queryResultsVector.txt
+```
