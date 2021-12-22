@@ -93,7 +93,6 @@ def searchFile(indexentry):
     f = getFileReader(indexentry[1])
     f.seek(int(indexentry[2]))
     line = f.readline()
-    f.close()
     docs = [x.split(":") for x in line.split(" ")]
     adder = 0
     result = dict()
@@ -134,10 +133,10 @@ def normalizeCos(value,doc):
     add = 0
     for location in locations:
         splitlocation = location.split(",")
-        filenumber = splitlocation[0]
-        offset = splitlocation[1]
-        value = readNextNumber(filenumber,offset)
-        add += value **2
+        filenumber = int(splitlocation[0])
+        offset = int(splitlocation[1])
+        weight = readNextNumber(filenumber,offset)
+        add += weight **2
     add = math.sqrt(add)
     del stage2metadata[doc] #clear memory
     normalizeCos.seen[doc] = add
@@ -150,13 +149,13 @@ def readNextNumber(filekey,offset):
     #ONLY USED FOR COSINE NORMALIZATION
     f = getFileReader(filekey)
     f.seek(offset)
-    str = ""
+    value = ""
     while True:
         char = f.read(1)
         if char.isspace():
             break
-        str+=char
-    return float(char)
+        value+=char
+    return float(value)
 
 
 if __name__=="__main__":

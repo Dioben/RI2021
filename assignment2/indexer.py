@@ -101,6 +101,12 @@ def restructure_as_map(ordered): #DESCRIPTION: MAPS ORDERED TERMS TO TERMS->DOC_
             postingslist= []
         #update
         postingslist.append(id)
+    postingsMap = Counter(postingslist)#automatically maps how many times each document has a certain word
+    postingslist = sorted(set(postingslist))
+    gaps = [(postingslist[0],postingsMap[postingslist[0]])] #each gap has an associated doc-word number
+    for i in range(len(postingslist))[1:]:
+        gaps+= [(postingslist[i]-postingslist[i-1],postingsMap[postingslist[i]])]
+    index[current]=gaps #save
 
     return index
 
