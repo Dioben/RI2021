@@ -71,7 +71,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         masterindexfile.write(outputstring)
     metadatafile = open(metadataoutput,"w")
     for key in sorted(global_doc_index.keys()):
-        metadatafile.write(math.sqrt(global_doc_index[key])+"\n")
+        metadatafile.write(f"{math.sqrt(global_doc_index[key])}\n")
     filewriter.close()
     metadatafile.close()
     masterindexfile.close()
