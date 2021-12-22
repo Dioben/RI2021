@@ -26,8 +26,9 @@ def parseTextLine(line):
         freqs.append( (int(parts[0]),int(parts[1])) )
     return {"word":line[0],"freqs":freqs}
 
-def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,iterateFunc):
+def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,iterateFunc,metadataoutput):
     global_index_struct = []
+    global_doc_index = {}
     consecutive_writes = 0
     curr_file = 0
     files = [open(x,"r") for x in filenames]
@@ -45,7 +46,21 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
         docsforterm = len(gapsandweights)
         global_index_struct.append((current,docsforterm,curr_file,filewriter.tell(),math.log10(totaldocs/docsforterm))) #update global index
 
-        filewriter.write(" ".join([f"{numb}:{score}" for numb,score in gapsandweights])+"\n") #write current data to disk
+        doc_id=0
+        gapsstring=""
+        for i, (numb,score) in enumerate(gapsandweights):
+            doc_id += numb
+            filewriter.write(f"{numb}:")
+            
+            doc_index_offset = filewriter.tell()
+            if doc_id in global_doc_index:
+                global_doc_index[doc_id].append((curr_file,doc_index_offset))
+            else:
+                global_doc_index[doc_id] = [(curr_file,doc_index_offset)]
+
+            filewriter.write(f"{score}"+("" if i + 1 == len(gapsandweights) else " "))
+        filewriter.write(gapsstring[:-1]+"\n")
+
         consecutive_writes+=1
         if consecutive_writes>=termlimit:
             consecutive_writes=0
@@ -56,6 +71,9 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
     for item in global_index_struct:
         outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]} {item[4]}\n"
         masterindexfile.write(outputstring)
+    metadatafile = open(metadataoutput,"w")
+    for key in sorted(global_doc_index.keys()):
+        metadatafile.write(" ".join([f"{x[0]},{x[1]}" for x in global_doc_index[key]]) +"\n")
     masterindexfile.close()
 
 
@@ -129,15 +147,9 @@ def iterateAllFilesVector(current,currentwords): #checks all currently open file
                 new_terms.add(currentwords[x]["word"])
     
     positionkeys = sorted(positions.keys())
-    denum = sum([(1+math.log10(x))**2 for x in positions.values()])
-    denum = math.sqrt(denum)
-    gaps = [(positionkeys[0],
-                            (1+math.log10(
-                                positions[positionkeys[0]]
-                                ))/denum
-            )]
+    gaps = [(positionkeys[0], (1+math.log10(positions[positionkeys[0]])))]
     for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], (1+math.log10(positions[positionkeys[i]]))/denum )]
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], (1+math.log10(positions[positionkeys[i]])) )]
    
     
     return currentwords,gaps,new_terms
@@ -149,6 +161,7 @@ if __name__=="__main__":
     parser.add_argument("--masterfile",help="Master file name",default="masterindex.ssv")
     parser.add_argument("--outputprefix",help="prefix for non-master output files",default="mergedindex")
     parser.add_argument("--metadata",help="path to stage 1 metadata",default="stage1metadata.ssv")
+    parser.add_argument("--new-metadata",help="path to stage 2 metadata",default="stage2metadata.ssv")
     parser.add_argument('--BM25', dest='bm25', action='store_true')
     parser.add_argument('--vector', dest='bm25', action='store_false')
     parser.set_defaults(bm25=True)
@@ -171,6 +184,6 @@ if __name__=="__main__":
     else:
         iteratefunc = iterateAllFilesVector
 
-    merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],iteratefunc)
+    merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],iteratefunc,args.new_metadata)
     timedelta = perf_counter() - timedelta
     print(timedelta)
