@@ -6,7 +6,19 @@ from nltk.stem import PorterStemmer
 import math
 
 
-def readMetadata(metadatafile):
+stage2metadata = {}
+readers = {}
+
+def getFileReader(key):
+    #NEW IN VERSION 2
+    #WE KEEP A FILE READER POOL RATHER THAN CONSTANTLY OPENING AND CLOSING
+    if key in readers:
+        return readers[key]
+    readers[key] = open(f"{getFileReader.prefix}{key}.ssv","r")
+    return readers[key]
+    
+
+def readMetadataStage1(metadatafile):
     #NEW IN ASSIGNMENT 2
     #reads the metadata file, extracts all information as a map object
     # unlike the readMetadata in merger.py, this one also stores the real_IDs
@@ -24,6 +36,18 @@ def readMetadata(metadatafile):
     data["realids"] = realids
     return data
 
+def readMetadataStage2(metadatafile):
+    #NEW IN ASSIGNMENT 2
+    #reads stage 2 metadata and matches each doc's weights in the mergedindexes to it
+    data = {}
+    f = open(metadatafile,"r")
+    id = 0
+    for line in f:
+        data[id] = line.split(" ")
+        id+=1
+    f.close()
+    return data
+
 def loadIndex(masterfile):
     #now includes IDF
     output = {}
@@ -35,7 +59,7 @@ def loadIndex(masterfile):
     file.close()
     return output
 
-def searchLoop(index,stemmer,indexprefix,metadata,scorefunc):
+def searchLoop(index,stemmer,metadata,scorefunc):
     print("Entering query mode")
     print("Use '!q' to exit \nMultiple keywords can be used with space separation")
     while True:
@@ -49,7 +73,7 @@ def searchLoop(index,stemmer,indexprefix,metadata,scorefunc):
         for word in keywords:
             try:
                 if word not in termDocs:
-                    docs = searchFile(index[stemmer.stem(word)],indexprefix)
+                    docs = searchFile(index[stemmer.stem(word)])
                     allDocs.update(docs.keys())
                     termDocs[word] = (1, docs)
                 else:
@@ -63,10 +87,10 @@ def searchLoop(index,stemmer,indexprefix,metadata,scorefunc):
         top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:100]]
         print(*[f'{docID:16s} | {score:7.3f}\n' for docID, score in top100], sep="")
 
-def searchFile(indexentry,indexprefix):
+def searchFile(indexentry):
     #searches for term in file
     #also turns gaps into docIDs
-    f = open(f"{indexprefix}{indexentry[1]}.ssv") 
+    f = getFileReader(indexentry[1])
     f.seek(int(indexentry[2]))
     line = f.readline()
     f.close()
@@ -91,21 +115,55 @@ def calcScoreBM25(termDocs, commonDocs, *_):
 
 def calcScoreVector(termDocs, commonDocs, totaldocs, index):
     #NEW IN ASSIGNMENT 2
+    docnorm = calcScoreVector.documentNormalization
     result = []
     for doc in commonDocs:
         termWeights = []
         docWeights = []
         for term, (tf, docValues) in termDocs.items():
             termWeights.append((1 + math.log10(tf)) * math.log10(totaldocs/int(index[term][0])))
-            docWeights.append(docValues[doc] if doc in docValues else 0)
+            docWeights.append( docnorm(docValues[doc],doc) if doc in docValues else 0)
         queryLen = math.sqrt(sum(w ** 2 for w in termWeights))
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
-        
+
+def normalizeCos(value,doc):
+    if doc in normalizeCos.seen:
+        return value/normalizeCos.seen[doc]
+    locations = stage2metadata[doc]
+    add = 0
+    for location in locations:
+        splitlocation = location.split(",")
+        filenumber = splitlocation[0]
+        offset = splitlocation[1]
+        value = readNextNumber(filenumber,offset)
+        add += value **2
+    add = math.sqrt(add)
+    del stage2metadata[doc] #clear memory
+    normalizeCos.seen[doc] = add
+    return value/add 
+normalizeCos.seen = {}
+
+def readNextNumber(filekey,offset):
+    #NEW IN ASSIGNMENT 2
+    #GO STRAIGHT TO A DOCUMENT'S WEIGHT FOR TERM, READ VALUE
+    #ONLY USED FOR COSINE NORMALIZATION
+    f = getFileReader(filekey)
+    f.seek(offset)
+    str = ""
+    while True:
+        char = f.read(1)
+        if char.isspace():
+            break
+        str+=char
+    return float(char)
+
+
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--masterfile",help="path to master file",default="masterindex.ssv")
     parser.add_argument("--metadata",help="path to stage 1 metadata",default="stage1metadata.ssv")
+    parser.add_argument("--metadata2",help="path to stage 2 metadata",default="stage2metadata.ssv")
     parser.add_argument("--prefix",help="Index file prefix",default="mergedindex")
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
@@ -125,7 +183,7 @@ if __name__=="__main__":
     if args.timing:
         timedelta = perf_counter()
     index = loadIndex(args.masterfile)
-    metadata = readMetadata(args.metadata)
+    metadata = readMetadataStage1(args.metadata)
     if args.timing:
         timedelta= perf_counter()-timedelta
         print(timedelta)
@@ -134,6 +192,11 @@ if __name__=="__main__":
     if args.bm25:
         scorefunc = calcScoreBM25
     else:
+        calcScoreVector.documentNormalization = normalizeCos
         scorefunc = calcScoreVector
+        
+        stage2metadata = readMetadataStage2(args.metadata2)
 
-    searchLoop(index,stemmer,args.prefix,metadata,scorefunc)
+    getFileReader.prefix = args.prefix
+
+    searchLoop(index,stemmer,metadata,scorefunc)
