@@ -178,9 +178,9 @@ if __name__=="__main__":
         try:
             args.norm[1] = float(args.norm[1])
         except:
-            raise ValueError("When doc-norm is u, an additional float value is required")
+            raise ValueError("When document normalization is u, an additional float value is required")
     if (args.doc_freq not in ["n", "t"]):
-        raise ValueError("Document term frequency should be in [n, l, b]")
+        raise ValueError("Document document frequency should be in [n, t]")
 
     metadata = readMetadata(args.metadata)
 
