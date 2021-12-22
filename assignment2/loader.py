@@ -6,7 +6,7 @@ from nltk.stem import PorterStemmer
 import math
 
 
-stage2metadata = {}
+cosLengths = {}
 readers = {}
 
 def getFileReader(key):
@@ -38,13 +38,11 @@ def readMetadataStage1(metadatafile):
 
 def readMetadataStage2(metadatafile):
     #NEW IN ASSIGNMENT 2
-    #reads stage 2 metadata and matches each doc's weights in the mergedindexes to it
-    data = {}
+    #reads stage 2 metadata to get each doc's length for cosine purposes
+    data = []
     f = open(metadatafile,"r")
-    id = 0
     for line in f:
-        data[id] = line.split(" ")
-        id+=1
+        data.append(float(line))
     f.close()
     return data
 
@@ -127,21 +125,7 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
     return result
 
 def normalizeCos(value,doc):
-    if doc in normalizeCos.seen:
-        return value/normalizeCos.seen[doc]
-    locations = stage2metadata[doc]
-    add = 0
-    for location in locations:
-        splitlocation = location.split(",")
-        filenumber = int(splitlocation[0])
-        offset = int(splitlocation[1])
-        weight = readNextNumber(filenumber,offset)
-        add += weight **2
-    add = math.sqrt(add)
-    del stage2metadata[doc] #clear memory
-    normalizeCos.seen[doc] = add
-    return value/add 
-normalizeCos.seen = {}
+    return value/cosLengths[doc]
 
 def readNextNumber(filekey,offset):
     #NEW IN ASSIGNMENT 2
@@ -194,7 +178,7 @@ if __name__=="__main__":
         calcScoreVector.documentNormalization = normalizeCos
         scorefunc = calcScoreVector
         
-        stage2metadata = readMetadataStage2(args.metadata2)
+        cosLengths = readMetadataStage2(args.metadata2)
 
     getFileReader.prefix = args.prefix
 
