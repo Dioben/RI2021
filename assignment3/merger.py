@@ -16,9 +16,7 @@ def readMetadata(metadatafile):
     data["lengths"] = doclens
     return data
 
-def parseTextLine(line):
-    #NEW IN ASSIGNMENT 2
-    #returns the current word and a (ID,FREQUENCY) tuple list which now are only split and parsed once
+def parseTextLineNoPositions(line):
     line = line.split(" ")
     freqs = []
     for doc in line[1:]:
@@ -26,7 +24,15 @@ def parseTextLine(line):
         freqs.append( (int(parts[0]),int(parts[1])) )
     return {"word":line[0],"freqs":freqs}
 
-def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,iterateFunc,metadataoutput):
+def parseTextLinePositions(line):
+    line = line.split(" ")
+    freqs = []
+    for doc in line[1:]:
+        parts = doc.split(":")
+        freqs.append( (int(parts[0]),int(parts[1]),tuple([int(x) for x in parts[2].split(",")]) ) ) #doc, count,positions
+    return {"word":line[0],"freqs":freqs}
+
+def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,metadataoutput,hasPositions):
     global_index_struct = []
     global_doc_index = {}
     consecutive_writes = 0
@@ -39,7 +45,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
     while sortedkeys:
 
         current = sortedkeys.pop(0)
-        currentwords,gapsandweights,new_terms = iterateFunc(current,currentwords)
+        currentwords,gapsandweights,new_terms = iterateAllFiles(current,currentwords)
         for term in new_terms:
             if term not in sortedkeys:
                 bisect.insort(sortedkeys,term)
@@ -48,6 +54,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
 
         doc_id=0
         gapsize = len(gapsandweights)
+        #TODO: ADAPT TO NEW DATASTRUCT,write POS
         for i, (numb,score) in enumerate(gapsandweights):
             doc_id += numb
             global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
@@ -77,52 +84,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,it
     masterindexfile.close()
 
 
-def iterateAllFilesBM25(current,currentwords): #checks all currently open files, 
-    #if they match lowest ranked word we add them to position calculations
-    #and try move on, if they dont have more to give we delete them too
-    
-    #calculates BM25 score
-    positions = {} 
-    new_terms = set()
-
-    for x,y in list(currentwords.items()):
-        if y['word']==current:
-            id_adder = 0
-            for id,freq in y['freqs']:
-                id_adder+=id
-                if id_adder not in positions:
-                    positions[id_adder] = freq
-                else:
-                    positions[id_adder]+= freq
-            next_term = x.readline()
-            if next_term=="":
-                del currentwords[x]
-            else:
-                currentwords[x]=parseTextLine(next_term)
-                new_terms.add(currentwords[x]["word"])
-    
-    positionkeys = sorted(positions.keys())
-
-    k = iterateAllFilesBM25.k #just shortening var names, workaround to ensure same interface as the vector method
-    b = iterateAllFilesBM25.b
-    totaldocs = iterateAllFilesBM25.totaldocs
-    avglen = iterateAllFilesBM25.avglen
-    lengths = iterateAllFilesBM25.lengths
-    df = len(positionkeys) #total docs
-
-    gaps = [(positionkeys[0], calcBM25(positions[positionkeys[0]],df,totaldocs,k,b,avglen,lengths[positionkeys[0]]) )]
-    for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], calcBM25(positions[positionkeys[i]],df,totaldocs,k,b,avglen,lengths[positionkeys[i]]) )]
-   
-    
-    return currentwords,gaps,new_terms
-
-
-def calcBM25(tf,df,N,k,b,avgdl,dl):
-    return math.log10(N/df) * (k+1)*tf / (k*((1-b)+b*dl/avgdl)+tf)
-
-
-def iterateAllFilesVector(current,currentwords): #checks all currently open files, 
+def iterateAllFiles(current,currentwords): #checks all currently open files, 
     #if they match lowest ranked word we add them to position calculations
     #and try move on, if they dont have more to give we delete them too
 
@@ -147,13 +109,34 @@ def iterateAllFilesVector(current,currentwords): #checks all currently open file
                 new_terms.add(currentwords[x]["word"])
     
     positionkeys = sorted(positions.keys())
-    df = len(positionkeys)
-    gaps = [( positionkeys[0], iterateAllFilesVector.termFreqFunc(positions[positionkeys[0]])*iterateAllFilesVector.docFreqFunc(df) )]
-    for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], iterateAllFilesVector.termFreqFunc(positions[positionkeys[i]])*iterateAllFilesVector.docFreqFunc(df) )]
-   
+
+    gaps = iterateAllFiles.calcGaps(positionkeys,positions)
     
     return currentwords,gaps,new_terms
+
+
+def calcGapsVector(positionkeys,positions):
+    df = len(positionkeys)
+    gaps = [( positionkeys[0], calcGapsVector.termFreqFunc(positions[positionkeys[0]])*calcGapsVector.docFreqFunc(df) )]
+    for i in range(len(positionkeys))[1:]:
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], calcGapsVector.termFreqFunc(positions[positionkeys[i]])*calcGapsVector.docFreqFunc(df) )]
+    return gaps
+
+def calcGapsBM25(positionkeys,positions):
+    k = calcGapsBM25.k #just shortening var names, workaround to ensure same interface as the vector method
+    b = calcGapsBM25.b
+    totaldocs = calcGapsBM25.totaldocs
+    avglen = calcGapsBM25.avglen
+    lengths = calcGapsBM25.lengths
+    df = len(positionkeys) #total docs
+
+    gaps = [(positionkeys[0], calcBM25(positions[positionkeys[0]],df,totaldocs,k,b,avglen,lengths[positionkeys[0]]) )]
+    for i in range(len(positionkeys))[1:]:
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], calcBM25(positions[positionkeys[i]],df,totaldocs,k,b,avglen,lengths[positionkeys[i]]) )]
+    return gaps
+
+def calcBM25(tf,df,N,k,b,avgdl,dl):
+    return math.log10(N/df) * (k+1)*tf / (k*((1-b)+b*dl/avgdl)+tf)
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
@@ -171,6 +154,11 @@ if __name__=="__main__":
     parser.add_argument('--term-freq',type=str,default="l")
     parser.add_argument('--doc-freq',type=str,default="n")
     parser.add_argument('--norm',type=str,nargs="+",default=["c"])
+
+    #positions
+    parser.add_argument('--positions', dest='pos', action='store_true')
+    parser.add_argument('--no-positions', dest='pos', action='store_false')
+    parser.set_defaults(pos=True)
     args = parser.parse_args()
 
     if (args.term_freq not in ["n", "l", "b"]):
@@ -190,28 +178,27 @@ if __name__=="__main__":
     timedelta = perf_counter()
     files = scanDirectory(args.prefix)
     if args.bm25:
-        iteratefunc = iterateAllFilesBM25
-        iterateAllFilesBM25.k = args.BM25_k
-        iterateAllFilesBM25.b = args.BM25_b
-        iterateAllFilesBM25.totaldocs = metadata['totaldocs']
-        iterateAllFilesBM25.avglen = metadata["avglen"]
-        iterateAllFilesBM25.lengths = metadata["lengths"]
+        iterateAllFiles.calcGaps = calcGapsBM25
+        calcGapsBM25.k = args.BM25_k
+        calcGapsBM25.b = args.BM25_b
+        calcGapsBM25.totaldocs = metadata['totaldocs']
+        calcGapsBM25.avglen = metadata["avglen"]
+        calcGapsBM25.lengths = metadata["lengths"]
         merge.normAddFunc = lambda *_: 0
         merge.normFinalFunc = lambda _: 1
     else:
-        iteratefunc = iterateAllFilesVector
-        
+        iterateAllFiles.calcGaps = calcGapsVector
         if (args.term_freq == "n"):
-            iterateAllFilesVector.termFreqFunc = lambda tf: tf
+            calcGapsVector.termFreqFunc = lambda tf: tf
         elif (args.term_freq == "l"):
-            iterateAllFilesVector.termFreqFunc = lambda tf: 1 + math.log10(tf)
+            calcGapsVector.termFreqFunc = lambda tf: 1 + math.log10(tf)
         elif (args.term_freq == "b"):
-            iterateAllFilesVector.termFreqFunc = lambda _: 1
+            calcGapsVector.termFreqFunc = lambda _: 1
         
         if (args.doc_freq == "n"):
-            iterateAllFilesVector.docFreqFunc = lambda _: 1
+            calcGapsVector.docFreqFunc = lambda _: 1
         elif (args.doc_freq == "t"):
-            iterateAllFilesVector.docFreqFunc = lambda df: math.log10(metadata['totaldocs']/df)
+            calcGapsVector.docFreqFunc = lambda df: math.log10(metadata['totaldocs']/df)
             
         if (args.norm[0] == "n"):
             merge.normAddFunc = lambda *_: 0 # doesn't matter
@@ -223,8 +210,12 @@ if __name__=="__main__":
         elif (args.norm[0] == "u"):
             merge.normAddFunc = lambda *_: 0 # doesn't matter
             merge.normFinalFunc = lambda _: args.norm[1]
-        
+    
+    if args.pos:
+        parseTextLine = parseTextLinePositions
+    else:
+        parseTextLine = parseTextLineNoPositions
 
-    merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],iteratefunc,args.new_metadata)
+    merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],args.new_metadata)
     timedelta = perf_counter() - timedelta
     print(timedelta)
