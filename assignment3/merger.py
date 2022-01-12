@@ -91,7 +91,7 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
     #calculates vector score
     positions = {} 
     new_terms = set()
-
+    #TODO: ADAPT FOR POSITIONS
     for x,y in list(currentwords.items()):
         if y['word']==current:
             id_adder = 0
