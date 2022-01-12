@@ -190,7 +190,7 @@ if __name__=="__main__":
     #positions
     parser.add_argument('--positions', dest='pos', action='store_true')
     parser.add_argument('--no-positions', dest='pos', action='store_false')
-    parser.set_defaults(positions=True)
+    parser.set_defaults(pos=True)
 
     args = parser.parse_args()
 
