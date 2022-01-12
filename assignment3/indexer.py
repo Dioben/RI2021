@@ -123,9 +123,9 @@ def restructure_as_map_no_positions(ordered): #DESCRIPTION: MAPS ORDERED TERMS T
     return index
 
 def restructure_as_map_positions(ordered):
-    #TODO: THIS WHOLE ASS THING
     current = ""
     postingslist= []
+    positionMap = {}
     index = {}
     """"
     if term is same add to current ID set, add +1
@@ -136,20 +136,26 @@ def restructure_as_map_positions(ordered):
             if current!="":
                 postingsMap = Counter(postingslist)#automatically maps how many times each document has a certain word
                 postingslist = sorted(set(postingslist))
-                gaps = [(postingslist[0],postingsMap[postingslist[0]])] #each gap has an associated doc-word number
+                gaps = [(postingslist[0],postingsMap[postingslist[0]],positionMap[postingslist[0]])] #each gap has an associated doc-word number
                 for i in range(len(postingslist))[1:]:
-                    gaps+= [(postingslist[i]-postingslist[i-1],postingsMap[postingslist[i]])]
+                    gaps+= [(postingslist[i]-postingslist[i-1],postingsMap[postingslist[i]],positionMap[postingslist[i]])]
                 index[current]=gaps #save
             #reset
             current = term
             postingslist= []
+            positionMap = {}
         #update
         postingslist.append(id)
+        if id in positionMap:
+            positionMap[id].append(positions-positionMap[id][-1])
+        else:
+            positionMap[id] = [positions]
+
     postingsMap = Counter(postingslist)#automatically maps how many times each document has a certain word
     postingslist = sorted(set(postingslist))
-    gaps = [(postingslist[0],postingsMap[postingslist[0]])] #each gap has an associated doc-word number
+    gaps = [(postingslist[0],postingsMap[postingslist[0]],positionMap[postingslist[0]])] #each gap has an associated doc-word number
     for i in range(len(postingslist))[1:]:
-        gaps+= [(postingslist[i]-postingslist[i-1],postingsMap[postingslist[i]])]
+        gaps+= [(postingslist[i]-postingslist[i-1],postingsMap[postingslist[i]],positionMap[postingslist[i]])]
     index[current]=gaps #save
 
     return index
