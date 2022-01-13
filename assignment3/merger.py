@@ -45,7 +45,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,me
     while sortedkeys:
 
         current = sortedkeys.pop(0)
-        currentwords,gapsandweights,new_terms = iterateAllFiles(current,currentwords)
+        currentwords,gapsandweights,new_terms,word_occurence_indexes = iterateAllFiles(current,currentwords)
         for term in new_terms:
             if term not in sortedkeys:
                 bisect.insort(sortedkeys,term)
@@ -54,12 +54,18 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,me
 
         doc_id=0
         gapsize = len(gapsandweights)
-        #TODO: ADAPT TO NEW DATASTRUCT,write POS
-        for i, (numb,score) in enumerate(gapsandweights):
-            doc_id += numb
-            global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
-            
-            filewriter.write(f"{numb}:{score}"+("" if i + 1 == gapsize else " "))
+        if not hasPositions:
+            for i, (numb,score) in enumerate(gapsandweights):
+                doc_id += numb
+                global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
+                
+                filewriter.write(f"{numb}:{score}:{','.join(word_occurence_indexes[numb])}"+("" if i + 1 == gapsize else " "))
+        else:
+            for i, (numb,score) in enumerate(gapsandweights):
+                doc_id += numb
+                global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
+                
+                filewriter.write(f"{numb}:{score}"+("" if i + 1 == gapsize else " "))
 
         filewriter.write("\n")
 
@@ -91,28 +97,42 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
     #calculates vector score
     positions = {} 
     new_terms = set()
-    #TODO: ADAPT FOR POSITIONS
+    word_ocurrence_indexes = {}
     for x,y in list(currentwords.items()):
         if y['word']==current:
             id_adder = 0
-            for id,freq in y['freqs']:
+            for info in y['freqs']:
+                id = info[0]
+                freq = info[1]
                 id_adder+=id
                 if id_adder not in positions:
                     positions[id_adder] = freq
                 else:
                     positions[id_adder]+= freq
+                if len(info)>2:
+                    word_ocurrence_gaps = info[2]
+                    for i in range(1,len(word_ocurrence_gaps)):
+                        word_ocurrence_gaps[i] = word_ocurrence_gaps[i]+word_ocurrence_gaps[i-1] #undo gaps
+                    if id_adder in word_ocurrence_indexes:
+                        word_ocurrence_indexes[id_adder].extend(word_ocurrence_gaps)
+                    else:
+                        word_ocurrence_indexes[id_adder] = word_ocurrence_gaps
             next_term = x.readline()
             if next_term=="":
                 del currentwords[x]
             else:
                 currentwords[x]=parseTextLine(next_term)
                 new_terms.add(currentwords[x]["word"])
-    
-    positionkeys = sorted(positions.keys())
 
+    positionkeys = sorted(positions.keys())
     gaps = iterateAllFiles.calcGaps(positionkeys,positions)
     
-    return currentwords,gaps,new_terms
+    for x in word_ocurrence_indexes.values():
+        x = sorted(x)
+        for i in range(1,len(x))[::-1]:
+            x[i] = x[i]-x[i-1] #redo gaps
+
+    return currentwords,gaps,new_terms,word_ocurrence_indexes
 
 
 def calcGapsVector(positionkeys,positions):
