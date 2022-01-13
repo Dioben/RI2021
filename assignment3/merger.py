@@ -16,23 +16,42 @@ def readMetadata(metadatafile):
     data["lengths"] = doclens
     return data
 
-def parseTextLineNoPositions(line):
+def parseTextLine(line):
     line = line.split(" ")
     freqs = []
     for doc in line[1:]:
         parts = doc.split(":")
-        freqs.append( (int(parts[0]),int(parts[1])) )
+        if len(parts) > 2:
+            freqs.append( (int(parts[0]),int(parts[1]),tuple([int(x) for x in parts[2].split(",")]) ) ) #doc, count,positions
+        else:
+            freqs.append( (int(parts[0]),int(parts[1])) )
     return {"word":line[0],"freqs":freqs}
 
-def parseTextLinePositions(line):
-    line = line.split(" ")
-    freqs = []
-    for doc in line[1:]:
-        parts = doc.split(":")
-        freqs.append( (int(parts[0]),int(parts[1]),tuple([int(x) for x in parts[2].split(",")]) ) ) #doc, count,positions
-    return {"word":line[0],"freqs":freqs}
+def calcGapsVector(positionkeys,positions):
+    df = len(positionkeys)
+    gaps = [( positionkeys[0], calcGapsVector.termFreqFunc(positions[positionkeys[0]])*calcGapsVector.docFreqFunc(df) )]
+    for i in range(len(positionkeys))[1:]:
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], calcGapsVector.termFreqFunc(positions[positionkeys[i]])*calcGapsVector.docFreqFunc(df) )]
+    return gaps
 
-def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,metadataoutput,hasPositions):
+def calcGapsBM25(positionkeys,positions):
+    k = calcGapsBM25.k #just shortening var names, workaround to ensure same interface as the vector method
+    b = calcGapsBM25.b
+    totaldocs = calcGapsBM25.totaldocs
+    avglen = calcGapsBM25.avglen
+    lengths = calcGapsBM25.lengths
+    df = len(positionkeys) #total docs
+
+    gaps = [(positionkeys[0], calcBM25(positions[positionkeys[0]],df,totaldocs,k,b,avglen,lengths[positionkeys[0]]) )]
+    for i in range(len(positionkeys))[1:]:
+        gaps+= [ (positionkeys[i]-positionkeys[i-1], calcBM25(positions[positionkeys[i]],df,totaldocs,k,b,avglen,lengths[positionkeys[i]]) )]
+    return gaps
+
+def calcBM25(tf,df,N,k,b,avgdl,dl):
+    return math.log10(N/df) * (k+1)*tf / (k*((1-b)+b*dl/avgdl)+tf)
+
+
+def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,metadataoutput):
     global_index_struct = []
     global_doc_index = {}
     consecutive_writes = 0
@@ -46,25 +65,24 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,me
 
         current = sortedkeys.pop(0)
         currentwords,gapsandweights,new_terms,word_occurence_indexes = iterateAllFiles(current,currentwords)
-        for term in new_terms:
+        
+        for term in new_terms:#insort new terms
             if term not in sortedkeys:
                 bisect.insort(sortedkeys,term)
+        
         docsforterm = len(gapsandweights)
         global_index_struct.append((current,docsforterm,curr_file,filewriter.tell(),math.log10(totaldocs/docsforterm))) #update global index
 
         doc_id=0
         gapsize = len(gapsandweights)
-        if not hasPositions:
-            for i, (numb,score) in enumerate(gapsandweights):
-                doc_id += numb
-                global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
-                
-                filewriter.write(f"{numb}:{score}:{','.join(word_occurence_indexes[numb])}"+("" if i + 1 == gapsize else " "))
-        else:
-            for i, (numb,score) in enumerate(gapsandweights):
-                doc_id += numb
-                global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
-                
+        
+        
+        for i, (numb,score) in enumerate(gapsandweights):
+            doc_id += numb
+            global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
+            if word_occurence_indexes:
+                filewriter.write(f"{numb}:{score}:{','.join(word_occurence_indexes[doc_id])}"+("" if i + 1 == gapsize else " "))
+            else:
                 filewriter.write(f"{numb}:{score}"+("" if i + 1 == gapsize else " "))
 
         filewriter.write("\n")
@@ -75,29 +93,28 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,me
             curr_file+=1
             filewriter.close()
             filewriter = open(f"{supportfileprefix}{curr_file}.ssv","w") #reset file
-    masterindexfile = open(masterindexfilename,"w")
-    for item in global_index_struct:
-        outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]} {item[4]}\n"
-        masterindexfile.write(outputstring)
-    metadatafile = open(metadataoutput,"w")
-    for key in range(max(global_doc_index.keys())+1):
-        if key not in global_doc_index:
-            metadatafile.write("0\n")
-        else:
-            metadatafile.write(f"{merge.normFinalFunc(global_doc_index[key])}\n")
+
     filewriter.close()
-    metadatafile.close()
-    masterindexfile.close()
+
+    with open(masterindexfilename,"w") as masterindexfile:
+        for item in global_index_struct:
+            outputstring = f"{item[0]} {item[1]} {item[2]} {item[3]} {item[4]}\n"
+            masterindexfile.write(outputstring)
+    with open(metadataoutput,"w") as metadatafile:
+        for key in range(max(global_doc_index.keys())+1):
+            if key not in global_doc_index:
+                metadatafile.write("0\n")
+            else:
+                metadatafile.write(f"{merge.normFinalFunc(global_doc_index[key])}\n")
 
 
 def iterateAllFiles(current,currentwords): #checks all currently open files, 
     #if they match lowest ranked word we add them to position calculations
     #and try move on, if they dont have more to give we delete them too
-
-    #calculates vector score
     positions = {} 
     new_terms = set()
     word_ocurrence_indexes = {}
+
     for x,y in list(currentwords.items()):
         if y['word']==current:
             id_adder = 0
@@ -109,7 +126,7 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
                     positions[id_adder] = freq
                 else:
                     positions[id_adder]+= freq
-                if len(info)>2:
+                if len(info)>2: #we're dealing with positions
                     word_ocurrence_gaps = info[2]
                     for i in range(1,len(word_ocurrence_gaps)):
                         word_ocurrence_gaps[i] = word_ocurrence_gaps[i]+word_ocurrence_gaps[i-1] #undo gaps
@@ -135,28 +152,7 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
     return currentwords,gaps,new_terms,word_ocurrence_indexes
 
 
-def calcGapsVector(positionkeys,positions):
-    df = len(positionkeys)
-    gaps = [( positionkeys[0], calcGapsVector.termFreqFunc(positions[positionkeys[0]])*calcGapsVector.docFreqFunc(df) )]
-    for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], calcGapsVector.termFreqFunc(positions[positionkeys[i]])*calcGapsVector.docFreqFunc(df) )]
-    return gaps
 
-def calcGapsBM25(positionkeys,positions):
-    k = calcGapsBM25.k #just shortening var names, workaround to ensure same interface as the vector method
-    b = calcGapsBM25.b
-    totaldocs = calcGapsBM25.totaldocs
-    avglen = calcGapsBM25.avglen
-    lengths = calcGapsBM25.lengths
-    df = len(positionkeys) #total docs
-
-    gaps = [(positionkeys[0], calcBM25(positions[positionkeys[0]],df,totaldocs,k,b,avglen,lengths[positionkeys[0]]) )]
-    for i in range(len(positionkeys))[1:]:
-        gaps+= [ (positionkeys[i]-positionkeys[i-1], calcBM25(positions[positionkeys[i]],df,totaldocs,k,b,avglen,lengths[positionkeys[i]]) )]
-    return gaps
-
-def calcBM25(tf,df,N,k,b,avgdl,dl):
-    return math.log10(N/df) * (k+1)*tf / (k*((1-b)+b*dl/avgdl)+tf)
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
@@ -231,10 +227,7 @@ if __name__=="__main__":
             merge.normAddFunc = lambda *_: 0 # doesn't matter
             merge.normFinalFunc = lambda _: args.norm[1]
     
-    if args.pos:
-        parseTextLine = parseTextLinePositions
-    else:
-        parseTextLine = parseTextLineNoPositions
+
 
     merge(files,args.blocklimit,args.masterfile,args.outputprefix,metadata['totaldocs'],args.new_metadata)
     timedelta = perf_counter() - timedelta
