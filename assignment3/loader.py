@@ -76,7 +76,7 @@ def searchLoop(index,stemmer,metadata,scorefunc):
         
         results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
 
-        results = BoostPosition(results,positions)
+        results = BoostPosition(keywords,results,positions)
 
         print(f'{len(results)} documents found, top 100:')
         top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:100]]
@@ -127,7 +127,8 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
 
-def BoostPositionPost(results,positions):
+def BoostPositionPost(query,results,positions):
+    windowSize = BoostPositionPost.windowSize
     #TODO: Everything
     return results
 
@@ -152,6 +153,7 @@ if __name__=="__main__":
     parser.add_argument('--pos', dest='pos',help="enable position boosting", action='store_true')
     parser.add_argument('--no-pos', dest='pos',help="disable position boosting", action='store_false')
     parser.set_defaults(pos=False)
+    parser.add_argument('--pos-window-size',type=int,default=10)
     args = parser.parse_args()
     
     if (args.term_freq not in ["n", "l", "b"]):
@@ -180,8 +182,9 @@ if __name__=="__main__":
         print(timedelta)
         exit()
     if not args.pos:
-        BoostPosition = lambda x,y: x
+        BoostPosition = lambda q,x,y: x
     else:
+        BoostPositionPost.windowSize = args.pos_window_size
         BoostPosition = BoostPositionPost
     if args.bm25:
         scorefunc = calcScoreBM25
