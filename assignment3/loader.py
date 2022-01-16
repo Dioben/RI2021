@@ -76,6 +76,8 @@ def searchLoop(index,stemmer,metadata,scorefunc):
         
         results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
 
+        results = BoostPosition(results,positions)
+
         print(f'{len(results)} documents found, top 100:')
         top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:100]]
         print(*[f'{docID:16s} | {score:7.3f}\n' for docID, score in top100], sep="")
@@ -105,7 +107,6 @@ def searchFile(indexentry):
     return result,positions
 
 def calcScoreBM25(termDocs, commonDocs, *_):
-    #NEW IN ASSIGNMENT 2
     result = []
     for doc in commonDocs:
         score = 0
@@ -115,7 +116,6 @@ def calcScoreBM25(termDocs, commonDocs, *_):
     return result
 
 def calcScoreVector(termDocs, commonDocs, totaldocs, index):
-    #NEW IN ASSIGNMENT 2
     result = []
     for doc in commonDocs:
         termWeights = []
@@ -127,6 +127,9 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
 
+def BoostPositionPost(results,positions):
+    #TODO: Everything
+    return results
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
@@ -145,6 +148,10 @@ if __name__=="__main__":
     parser.add_argument('--term-freq',type=str,default="l")
     parser.add_argument('--doc-freq',type=str,default="t")
     parser.add_argument('--norm',type=str,nargs="+",default=["c"])
+
+    parser.add_argument('--pos', dest='pos',help="enable position boosting", action='store_true')
+    parser.add_argument('--no-pos', dest='pos',help="disable position boosting", action='store_false')
+    parser.set_defaults(pos=False)
     args = parser.parse_args()
     
     if (args.term_freq not in ["n", "l", "b"]):
@@ -172,7 +179,10 @@ if __name__=="__main__":
         timedelta= perf_counter()-timedelta
         print(timedelta)
         exit()
-
+    if not args.pos:
+        BoostPosition = lambda x,y: x
+    else:
+        BoostPosition = BoostPositionPost
     if args.bm25:
         scorefunc = calcScoreBM25
     else:
