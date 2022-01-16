@@ -99,7 +99,7 @@ def searchFile(indexentry):
         adder += num
         result[adder] = value
         if len(doc)>2:
-            docpos = doc[2]
+            docpos = doc[2].split(",")
             docpos[0] = int(docpos[0])
             for i in range(1,len(docpos)):
                 docpos[i] = int(docpos[i]) + docpos[i-1]
