@@ -1,6 +1,7 @@
 import argparse
 import csv
 from time import perf_counter
+from turtle import position
 from support import *
 from nltk.stem import PorterStemmer
 import math
@@ -9,8 +10,6 @@ import math
 readers = {}
 
 def getFileReader(key):
-    #NEW IN VERSION 2
-    #WE KEEP A FILE READER POOL RATHER THAN CONSTANTLY OPENING AND CLOSING
     if key in readers:
         return readers[key]
     readers[key] = open(f"{getFileReader.prefix}{key}.ssv","r")
@@ -18,9 +17,6 @@ def getFileReader(key):
     
 
 def readMetadataStage1(metadatafile):
-    #NEW IN ASSIGNMENT 2
-    #reads the metadata file, extracts all information as a map object
-    # unlike the readMetadata in merger.py, this one also stores the real_IDs
     f = open(metadatafile,"r")
     data = f.readline().split(" ")
     data = {"avglen":float(data[1]),"totaldocs":int(data[0])}
@@ -36,8 +32,6 @@ def readMetadataStage1(metadatafile):
     return data
 
 def readMetadataStage2(metadatafile):
-    #NEW IN ASSIGNMENT 2
-    #reads stage 2 metadata to get each doc's length for cosine purposes
     data = []
     f = open(metadatafile,"r")
     for line in f:
@@ -66,11 +60,13 @@ def searchLoop(index,stemmer,metadata,scorefunc):
         
         allDocs = set()
         termDocs = dict()
+        positions = {}
         keywords = query.split(" ")
         for word in keywords:
             try:
                 if word not in termDocs:
-                    docs = searchFile(index[stemmer.stem(word)])
+                    docs,pos = searchFile(index[stemmer.stem(word)])
+                    positions[word] = pos
                     allDocs.update(docs.keys())
                     termDocs[word] = (1, docs)
                 else:
@@ -90,14 +86,23 @@ def searchFile(indexentry):
     f = getFileReader(indexentry[1])
     f.seek(int(indexentry[2]))
     line = f.readline()
-    docs = [x.split(":") for x in line.split(" ")]
+    docs = [x.split(":") for x in line.split(" ")]#ASSIGNMENT 3: THIS CAN NOW HAVE LENGTH 3 IF POSITIONS ARE BEING USED
     adder = 0
     result = dict()
-    for num, value in docs:
+    positions = {}
+    for doc in docs:
+        num = doc[0]
+        value = doc[1]
         num, value = int(num), float(value)
         adder += num
         result[adder] = value
-    return result
+        if len(doc)>2:
+            docpos = doc[2]
+            docpos[0] = int(docpos[0])
+            for i in range(1,len(docpos)):
+                docpos[i] = int(docpos[i]) + docpos[i-1]
+            positions[adder] = docpos
+    return result,positions
 
 def calcScoreBM25(termDocs, commonDocs, *_):
     #NEW IN ASSIGNMENT 2
