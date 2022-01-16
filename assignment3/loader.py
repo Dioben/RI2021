@@ -129,7 +129,30 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
 
 def BoostPositionPost(query,results,positions):
     windowSize = BoostPositionPost.windowSize
-    #TODO: Everything
+    for document,score in results.keys():
+        
+        positionVector = []
+        for word,positions in positions.items():#for each word we are looking up 
+            if document in positions:
+                positionVector.extend([(word,x) for x in positions[document]])
+        positionVector = sorted(positionVector,key=lambda x:x[1]) #we now have relevant word positions, ordered
+        
+
+        word,last_seen = positionVector.pop(0)
+        currentState = query.index(word) #no combo yet
+        combos = []
+        counter = 1
+        streak = 0
+        for new_word,new_pos in positionVector:
+            if new_pos>last_seen+windowSize: #combo over
+                combos.append(counter)
+                counter = 1
+                currentState = query.index(new_word)
+                streak = 0
+            else:
+                pass#TODO: ACTUAL COMBO BOOSTING
+        comboScore = sum(combos)/len(combos)
+        score*= 1+math.log2(comboScore)/10
     return results
 
 if __name__=="__main__":
