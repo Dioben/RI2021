@@ -141,16 +141,28 @@ def BoostPositionPost(query,results,positions):
         word,last_seen = positionVector.pop(0)
         currentState = query.index(word) #no combo yet
         combos = []
-        counter = 1
-        streak = 0
+        counter = 1 #current combo score
+        seq_boost = 0 #reward sequential terms
         for new_word,new_pos in positionVector:
             if new_pos>last_seen+windowSize: #combo over
                 combos.append(counter)
                 counter = 1
+                seq_boost = 0
                 currentState = query.index(new_word)
-                streak = 0
             else:
-                pass#TODO: ACTUAL COMBO BOOSTING
+                try:#is this a sequential term
+                    next_idx = query.index(new_word,currentState+1) #try to find the next index by moving forward in query
+                    #TODO: TRY CHANGING NEXT_IDX TO HOLD IF IT EQUALS CURRENTSTATE
+                    seq_boost += 0.5 / (next_idx-currentState) #if we follow query linearly we're going to increase by .5, if we skip 1 by .25 ...
+                    counter += 1 + seq_boost
+                    currentState = next_idx
+                except: #we're not streaking anymore but are still finding terms within window
+                    seq_boost = 0
+                    counter+= 1
+                    currentState = query.index(new_word)
+            last_seen = new_pos
+            
+        
         comboScore = sum(combos)/len(combos)
         score*= 1+math.log2(comboScore)/10
     return results
