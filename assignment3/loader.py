@@ -162,7 +162,7 @@ def BoostPositionPost(query,results,positions):
                     currentState = query.index(new_word)
             last_seen = new_pos
             
-        
+        combos.append(counter)
         comboScore = sum(combos)/len(combos)
         score*= 1+math.log2(comboScore)/10
     return results
