@@ -44,7 +44,7 @@ def process_file(file,delimiter, relevant_columns, min_length, stopwords, stemme
                     #does not add stopwords or terms with more than 3 equal consecutive symbols
                    continue
                 if storePositions:
-                    current_items.append(( stemmer.stem(word) ,word_offset))
+                    current_items.append(( stemmer.stem(word) ,seq_id ,word_offset))
                 else:
                     current_items.append(( stemmer.stem(word) ,seq_id))
                 word_offset+=1
@@ -76,7 +76,7 @@ def dump_into_file(outputfile,current_items,storePositions):
     for x,y in alternate_structure_items.items():
         f.write(x+" ")
         if storePositions:
-            f.write(" ".join([f"{doc}:{count}:{','.join(positions)}" for doc,count,positions in y])+"\n")
+            f.write(" ".join([f"{doc}:{count}:{','.join([str(x) for x in positions])}" for doc,count,positions in y])+"\n")
         else:
             f.write(" ".join([f"{doc}:{count}" for doc,count in y])+"\n")
     f.close()
@@ -172,7 +172,7 @@ if __name__=="__main__":
     parser.add_argument("--stopwords",help="stopword source, 'default' uses default list, alternatively you can use a file path to a csv file with stopwords"\
                                         , default="default")
     parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
-    parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=5)
+    parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=50)
     
     parser.add_argument("--prefix",help="dump file prefix", default="blockdump") 
     #relevant columns
