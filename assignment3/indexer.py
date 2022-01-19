@@ -180,7 +180,7 @@ if __name__=="__main__":
     #stemmer
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
-    parser.set_defaults(stem=True)
+    parser.set_defaults(stem=False)
 
     #metadata file
     parser.add_argument("--metadata",help="Metadata output file", default="stage1metadata.ssv")

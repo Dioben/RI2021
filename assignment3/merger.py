@@ -22,7 +22,7 @@ def parseTextLine(line):
     for doc in line[1:]:
         parts = doc.split(":")
         if len(parts) > 2:
-            freqs.append( (int(parts[0]),int(parts[1]),tuple([int(x) for x in parts[2].split(",")]) ) ) #doc, count,positions
+            freqs.append( (int(parts[0]),int(parts[1]),list([int(x) for x in parts[2].split(",")]) ) ) #doc, count,positions
         else:
             freqs.append( (int(parts[0]),int(parts[1])) )
     return {"word":line[0],"freqs":freqs}
@@ -81,7 +81,7 @@ def merge(filenames,termlimit,masterindexfilename,supportfileprefix,totaldocs,me
             doc_id += numb
             global_doc_index[doc_id] = merge.normAddFunc(doc_id,global_doc_index,score)
             if word_occurence_indexes:
-                filewriter.write(f"{numb}:{score}:{','.join(word_occurence_indexes[doc_id])}"+("" if i + 1 == gapsize else " "))
+                filewriter.write(f"{numb}:{score}:{','.join([str(x) for x in word_occurence_indexes[doc_id]])}"+("" if i + 1 == gapsize else " "))
             else:
                 filewriter.write(f"{numb}:{score}"+("" if i + 1 == gapsize else " "))
 

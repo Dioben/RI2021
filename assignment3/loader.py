@@ -1,7 +1,6 @@
 import argparse
 import csv
 from time import perf_counter
-from turtle import position
 from support import *
 from nltk.stem import PorterStemmer
 import math
@@ -76,11 +75,12 @@ def searchLoop(index,stemmer,metadata,scorefunc):
         
         results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
 
-        results = BoostPosition(keywords,results,positions)
+        resultsBoost = BoostPosition(keywords,results,positions)
 
-        print(f'{len(results)} documents found, top 100:')
-        top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:100]]
-        print(*[f'{docID:16s} | {score:7.3f}\n' for docID, score in top100], sep="")
+        print(f'{len(results)} documents found, top 100 (docID | boosted score | score):')
+        results = {x:y for x,y in results}
+        top100 = [(metadata["realids"][doc], score, results[doc]) for doc, score in sorted(resultsBoost, key=lambda x: x[1], reverse=True)[0:100]]
+        print(*[f'{docID:16s}| {scoreBoost:7.3f} | {score:7.3f}\n' for docID, scoreBoost, score in top100], sep="")
 
 def searchFile(indexentry):
     #searches for term in file
@@ -127,12 +127,13 @@ def calcScoreVector(termDocs, commonDocs, totaldocs, index):
         result.append((doc,sum((w/queryLen) * docWeights[i] for i, w in enumerate(termWeights))))
     return result
 
-def BoostPositionPost(query,results,positions):
+def BoostPositionPost(query,results,allPositions):
     windowSize = BoostPositionPost.windowSize
-    for document,score in results.keys():
+    resultsBoost = [(x,y) for x,y in results]
+    for id,(document,score) in enumerate(resultsBoost):
         
         positionVector = []
-        for word,positions in positions.items():#for each word we are looking up 
+        for word,positions in allPositions.items():#for each word we are looking up 
             if document in positions:
                 positionVector.extend([(word,x) for x in positions[document]])
         positionVector = sorted(positionVector,key=lambda x:x[1]) #we now have relevant word positions, ordered
@@ -164,8 +165,8 @@ def BoostPositionPost(query,results,positions):
             
         combos.append(counter)
         comboScore = sum(combos)/len(combos)
-        score*= 1+math.log2(comboScore)/10
-    return results
+        resultsBoost[id]=(document, score*(1+math.log2(comboScore)/5))
+    return resultsBoost
 
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
@@ -175,7 +176,7 @@ if __name__=="__main__":
     parser.add_argument("--prefix",help="Index file prefix",default="mergedindex")
     parser.add_argument('--stemmer', dest='stem', action='store_true')
     parser.add_argument('--no-stemmer', dest='stem', action='store_false')
-    parser.set_defaults(stem=True)
+    parser.set_defaults(stem=False)
     parser.add_argument('--timer-only', dest='timing', action='store_true')
     parser.set_defaults(timing=False)
     parser.add_argument('--BM25', dest='bm25', action='store_true')
@@ -187,7 +188,7 @@ if __name__=="__main__":
 
     parser.add_argument('--pos', dest='pos',help="enable position boosting", action='store_true')
     parser.add_argument('--no-pos', dest='pos',help="disable position boosting", action='store_false')
-    parser.set_defaults(pos=False)
+    parser.set_defaults(pos=True)
     parser.add_argument('--pos-window-size',type=int,default=10)
     args = parser.parse_args()
     
@@ -217,7 +218,7 @@ if __name__=="__main__":
         print(timedelta)
         exit()
     if not args.pos:
-        BoostPosition = lambda q,x,y: x
+        BoostPosition = lambda _,x,__: x
     else:
         BoostPositionPost.windowSize = args.pos_window_size
         BoostPosition = BoostPositionPost
