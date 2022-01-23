@@ -185,10 +185,6 @@ if __name__=="__main__":
     parser.add_argument('--term-freq',type=str,default="l")
     parser.add_argument('--doc-freq',type=str,default="t")
     parser.add_argument('--norm',type=str,nargs="+",default=["c"])
-
-    parser.add_argument('--pos', dest='pos',help="enable position boosting", action='store_true')
-    parser.add_argument('--no-pos', dest='pos',help="disable position boosting", action='store_false')
-    parser.set_defaults(pos=True)
     parser.add_argument('--pos-window-size',type=int,default=10)
     args = parser.parse_args()
     
@@ -217,11 +213,9 @@ if __name__=="__main__":
         timedelta= perf_counter()-timedelta
         print(timedelta)
         exit()
-    if not args.pos:
-        BoostPosition = lambda _,x,__: x
-    else:
-        BoostPositionPost.windowSize = args.pos_window_size
-        BoostPosition = BoostPositionPost
+    #making this assignable in case we want alternate boosting functions later on
+    BoostPositionPost.windowSize = args.pos_window_size
+    BoostPosition = BoostPositionPost
     if args.bm25:
         scorefunc = calcScoreBM25
     else:
