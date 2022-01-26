@@ -3,15 +3,16 @@ import argparse
 from support import *
 from nltk.stem import PorterStemmer
 import math
+from time import perf_counter
 
-from loader import loadIndex,readMetadataStage1,readMetadataStage2,getFileReader,calcScoreBM25,calcScoreVector,searchFile
+from loader import loadIndex,readMetadataStage1,readMetadataStage2,getFileReader,calcScoreBM25,calcScoreVector,searchFile,BoostPositionPost
 
-cosLengths = []
 
 def searchInfo(index,stemmer,metadata,scorefunc,queries):
     
     info = {}
     for query in queries:
+        queryTime = perf_counter()
         query = query.lower().strip()
         allDocs = set()
         termDocs = dict()
@@ -28,7 +29,9 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries):
                 pass
         
         results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
-        top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:100]]
+        top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:50]]
+        queryTime = perf_counter() -queryTime
+        #gonna do boosting for each set for more accurate timing
         info[query] = top100
     return info
 
@@ -43,8 +46,9 @@ if __name__=="__main__":
     parser.set_defaults(stem=True)
     parser.add_argument('--BM25', dest='bm25', action='store_true')
     parser.add_argument('--vector', dest='bm25', action='store_false')
-    parser.add_argument("--queries",help="Query file source",default="queries.txt")
+    parser.add_argument("--queries",help="Query file source",default="queries_relevance.txt")
     parser.add_argument("--results",help="Result storage file ",default="queryResults.txt")
+    parser.add_argument('--pos-window-size',type=int,default=10)
     parser.set_defaults(bm25=True)
     args = parser.parse_args()
 
@@ -66,6 +70,8 @@ if __name__=="__main__":
         
         calcScoreVector.normDenums = readMetadataStage2(args.metadata2)
 
+    BoostPositionPost.windowSize = args.pos_window_size
+    BoostPosition = BoostPositionPost
     getFileReader.prefix = args.prefix
 
 
