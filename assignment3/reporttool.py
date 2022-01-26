@@ -29,17 +29,25 @@ def parseQueryFile(path):
 
 def searchInfo(index,stemmer,metadata,scorefunc,queries):
     
-    info = {}
-    for query in queries:
+    sizes = [10,20,50]
+    info = {x:{"normal":{"latency":0, "precision":0,"recall":0,"fscore":0,"AP":0,"NDCG":0},
+               "boost":{"latency":0, "precision":0,"recall":0,"fscore":0,"AP":0,"NDCG":0}} for x in sizes}
+
+    queryCount = len(queries.keys())
+
+    for query,standard in queries.items():
+
         queryTime = perf_counter()
         query = query.lower().strip()
         allDocs = set()
         termDocs = dict()
+        positions = {}
         keywords = query.split(" ")
         for word in keywords:
             try:
                 if word not in termDocs:
-                    docs = searchFile(index[stemmer.stem(word)])
+                    docs,pos = searchFile(index[stemmer.stem(word)])
+                    positions[word] = pos
                     allDocs.update(docs.keys())
                     termDocs[word] = (1, docs)
                 else:
@@ -48,10 +56,32 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries):
                 pass
         
         results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
-        top100 = [(metadata["realids"][doc], score) for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:50]]
-        queryTime = perf_counter() -queryTime
+        top50Base = [metadata["realids"][doc] for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:50]]
+        
+        queryTimeNoBoost = perf_counter() - queryTime
+        resultsBoost = BoostPosition(keywords,results,positions)
+        top50Boost = [ metadata["realids"][doc] for doc, score in sorted(resultsBoost, key=lambda x: x[1], reverse=True)[0:50]]
+        queryTimeBoost = perf_counter() -queryTime
         #gonna do boosting for each set for more accurate timing
-        info[query] = top100
+        for x in sizes:
+            info[x]["normal"]["latency"]+=queryTimeNoBoost
+            info[x]["boost"]["latency"]+=queryTimeBoost
+            for results in [("normal",top50Base),("boost",top50Boost)]:
+                type = results[0]
+                top = set(results[1][:x])
+                precision = len(top.intersection(standard.keys()))/len(top)
+                recall = len(top.intersection(standard.keys()))/len(standard.keys())
+                fscore = 2*precision*recall/(precision+recall)
+                info[x]["precision"] = precision
+                info[x]["recall"] = recall
+                info[x]["fscore"] = fscore
+    
+    for size in info.keys(): #change from sum to average
+        for type in ["normal"]["boost"]:
+            for metric in ["latency","precision","recall","fscore","AP","NDCG"]:
+                info[size][type][metric]/= queryCount
+                info[size][type][metric]/= queryCount
+
     return info
 
 if __name__=="__main__":
