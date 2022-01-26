@@ -1,11 +1,30 @@
 #functionally a copy of loader.py that runs queries from a file and outputs the results into another file
 import argparse
+
+from parso import parse
 from support import *
 from nltk.stem import PorterStemmer
 import math
 from time import perf_counter
 
 from loader import loadIndex,readMetadataStage1,readMetadataStage2,getFileReader,calcScoreBM25,calcScoreVector,searchFile,BoostPositionPost
+
+
+def parseQueryFile(path):
+    queries = {}
+    with open(path,"r") as f:
+        text = f.read()
+    current = ""
+    for line in text:
+        if not line: #empty line
+            continue
+        if line.startswith("Q:"): #new query
+            query = line.split("Q:",1)[1]
+            queries[query] = {}
+            current = query
+        else: #query results
+            doc = line.split("\t")
+            queries[current][doc[0]] = int(doc[1])
 
 
 def searchInfo(index,stemmer,metadata,scorefunc,queries):
@@ -75,11 +94,10 @@ if __name__=="__main__":
     getFileReader.prefix = args.prefix
 
 
-    f = open(args.queries,"r")
-    queries = f.read().split("\n")
-    f.close()
+    queryDict = parseQueryFile(args.queries)
 
-    info = searchInfo(index,stemmer,metadata,scorefunc,queries)
+
+    info = searchInfo(index,stemmer,metadata,scorefunc,queryDict)
     f = open(args.results,"w")
     for query,results in info.items():
         f.write(f"Q: {query}\n")
