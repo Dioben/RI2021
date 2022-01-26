@@ -66,17 +66,22 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries):
         for x in sizes:
             info[x]["normal"]["latency"]+=queryTimeNoBoost
             info[x]["boost"]["latency"]+=queryTimeBoost
-            for results in [("normal",top50Base),("boost",top50Boost)]:
-                type = results[0]
-                top = set(results[1][:x])
+            for type,results in [("normal",top50Base),("boost",top50Boost)]:
+                top = set(results[:x])
                 precision = len(top.intersection(standard.keys()))/len(top)
                 recall = len(top.intersection(standard.keys()))/len(standard.keys())
                 fscore = 2*precision*recall/(precision+recall)
                 info[x]["precision"] = precision
                 info[x]["recall"] = recall
                 info[x]["fscore"] = fscore
-    
-    for size in info.keys(): #change from sum to average
+                avgprecision = 0
+                for limsize in range(x):
+                    smallertop = set(results[:limsize])
+                    avgprecision+=len(smallertop.intersection(standard.keys()))/len(smallertop)
+                info[x]["AP"]+= avgprecision/x
+                #TODO: NDCG, THROUGHPUT
+
+    for size in sizes: #change from sum to average
         for type in ["normal"]["boost"]:
             for metric in ["latency","precision","recall","fscore","AP","NDCG"]:
                 info[size][type][metric]/= queryCount
