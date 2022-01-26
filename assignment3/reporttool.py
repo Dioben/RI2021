@@ -79,7 +79,19 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries):
                     smallertop = set(results[:limsize])
                     avgprecision+=len(smallertop.intersection(standard.keys()))/len(smallertop)
                 info[x]["AP"]+= avgprecision/x
-                #TODO: NDCG, THROUGHPUT
+                
+                dcg = 0
+                for idx,item in results[:x]:
+                    idx = idx+1
+                    rel = standard.get(item,0)
+                    dcg += rel/math.log2(idx)
+                idcg = 0
+                for idx,item in sorted(results[:x], reverse=True, key=lambda x: standard.get(x,0)):
+                    idx = idx+1
+                    rel = standard.get(item,0)
+                    idcg += rel/math.log2(idx)
+                info[x]["NDCG"]+= dcg/idcg
+                #TODO: THROUGHPUT
 
     for size in sizes: #change from sum to average
         for type in ["normal"]["boost"]:
