@@ -170,11 +170,6 @@ if __name__=="__main__":
     parser.add_argument('--term-freq',type=str,default="l")
     parser.add_argument('--doc-freq',type=str,default="n")
     parser.add_argument('--norm',type=str,nargs="+",default=["c"])
-
-    #positions
-    parser.add_argument('--positions', dest='pos', action='store_true')
-    parser.add_argument('--no-positions', dest='pos', action='store_false')
-    parser.set_defaults(pos=True)
     args = parser.parse_args()
 
     if (args.term_freq not in ["n", "l", "b"]):

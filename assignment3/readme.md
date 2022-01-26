@@ -14,19 +14,15 @@ This program supports the following parameters:
 + **--stopwords**: Stopword source, a path to a csv file with stopwords.  
         Using 'default' will make the program use the default stopword list
 + **--stopword_delimiter**: Custom delimiter for the stopwords file, default is ","
-+ **--stopsize**: Set maximum list size before partitioning in megabytes, default value is 5
++ **--stopsize**: Set maximum list size before partitioning in megabytes, default value is 50
 + **--prefix**: Set prefix for output files, default is "blockdump". Output files will always end in .ssv
-+ **--stemmer/no-stemmer**: sets whether to use Stemming. By default nltk PorterStemmer is used.
++ **--stemmer/no-stemmer**: sets whether to use Stemming. By default no stemmer is used.
 + **--source**: Input file location
 + **--relevant**: Columns to search, comma-separated
 + **--metadata**: File to output metadata into, default is stage1metadata.ssv
-
-### Features added for 2nd assigment:
-- Data blocks now include how many times a term in seen in each document  
-- Now outputs a metadata file including: 
-    + average document length
-    + total document count
-    + sequential ID, original ID, document length for each document indexed
++ **--positions/no-positions**: Sets whether to store positions at which word x occurs in document y, default is True
+### Features added for 3rd assigment:
+- Optionally stores document positions
 
 ### merger.py
 Scans for all files matching a preffix and then attempts to merge them.\
@@ -56,26 +52,20 @@ This program supports the following parameters:
 + **--doc-freq**: The document document frequency letter of the SMART notation for the vector space ranking, possible values are [n, t], default is n
 + **--norm**: The document normalization letter of the SMART notation for the vector space ranking, possible values are [n, c, u] (pivoted unique normalization (u) uses 1 extra argument for the value), default is c
 
-### Features added for 2nd assigment:
-+ Master index now includes IDF data.  
-+ Allows for indexing using BM25 or vector space ranking.
-+ Weights are now added to the index files, with no normalization.  
-+ Many schemas can be used for the vector space ranking.
-
-Outputs a metadata file where each line contains the normalization denominator of the matching file  
-Additionally file line parsing is no longer done several times, which has led to a performance increase eclipsed by the downgrade caused by performing score calculations.
+### Features added for 3rd assigment:
++ Merges word occurence positions if applicable
 
 ### loader.py
 On startup, loads the master index file into a map, with terms as keys, as well as the length and real ID of each document from the metadata file.\
 If normalization is enabled the stage 2 metadata file will be read as well.  
 Terms can then be searched in a command line interface.
-The mergedindex files are now only opened once each and kept in a pool.  
 Use of multiple space-separated terms is supported. Each term's document set will be joined and the final score values will be decided based on all keywords.
+Our score boosting function is not a toggle, in absence of positions no boosting happens by default
 
 This program supports the following parameters:
 + **--masterfile**: Master file location, default is "masterindex.ssv"
 + **--prefix**: Prefix to merged index file names, default is "mergedindex"
-+ **--stemmer/no-stemmer**: Toggles Stemming, default is using nltk PorterStemmer
++ **--stemmer/no-stemmer**: Toggles Stemming, default is no stemmer
 + **--timer-only**: Loads index and exits without going into interactive search mode
 + **--metadata**: File to read stage 1 metadata from, default is stage1metadata.ssv
 + **--metadata2**: File to read stage 2 metadata from, default is stage2metadata.ssv
@@ -83,15 +73,38 @@ This program supports the following parameters:
 + **--term-freq**: The query term frequency letter of the SMART notation for the vector space ranking, possible values are [n, l, b], default is l
 + **--doc-freq**: The query document frequency letter of the SMART notation for the vector space ranking, possible values are [n, t], default is n
 + **--norm**: The query normalization letter of the SMART notation for the vector space ranking, possible values are [n, c, u] (pivoted unique normalization (u) uses 1 extra argument for the value), default is c
++ **--pos-window-size**: parameter related to score boosting, higher values lead to bigger boosts. default is 10
 
-### Features added for 2nd assigment:
-+ Now loads IDF data from metadata.
-+ Allows for searching using BM25 or vector space ranking.
-+ File pool system
-+ Customizable Normalization
-+ Many schemas can be used for the vector space ranking.
+### Features added for 3rd assigment:
++ Applies a score boosting formula that rewards query terms appearing close to one another, especially when matching the original query's order
+
+### Score Boosting Formula:
+We apply a multiplicative bonus to the values often by our previous query methods.  
+We get all relevant word positions for a given doc and sort them into a timeline.  
+
+We then iterate the timeline in order to calculate "combos". As long as words appear within a set position index of one another (pos-window-size) the combo score is increased.  
+Scores start out incrementing by 1 but this value ramps up with combo length in function of how well the combo matches the query sequence.  
+Failing to find a follow-up term within the window will cause the combo value to be scored and a new combo to be started.  
+
+At the end the average combo score is calculated and the original score is multiplied by 1 + log2(avgcombo)/5  
+
+Here are some values to help with comprehension of how this boost scales:
+
+| avgcombo | multiplier |
+|----------|------------|
+|     1    |     1.0    |
+|     2    |     1.2    |
+|     3    |    1.317   |
+|     4    |     1.4    |
+|     5    |    1.464   |
+|     6    |    1.517   |
+|     7    |    1.561   |
+|     8    |     1.6    |
 
 ## Results
+```diff
+- this whole thing is TODO
+```
 The results for each query in the **queries.txt** file, using the BM25 and the vector space ranking file, are in the **queryResultsBM25.txt** and in the **queryResultsVector.txt** files respectively.  
 The commands used to obtain these files are:
 ```
