@@ -14,7 +14,7 @@ This program supports the following parameters:
 + **--stopwords**: Stopword source, a path to a csv file with stopwords.  
         Using 'default' will make the program use the default stopword list
 + **--stopword_delimiter**: Custom delimiter for the stopwords file, default is ","
-+ **--stopsize**: Set maximum list size before partitioning in megabytes, default value is 50
++ **--stopsize**: Set maximum list size before partitioning in megabytes, default value is 100
 + **--prefix**: Set prefix for output files, default is "blockdump". Output files will always end in .ssv
 + **--stemmer/no-stemmer**: sets whether to use Stemming. By default no stemmer is used.
 + **--source**: Input file location
@@ -39,7 +39,7 @@ This process leads to the generation of 3 types of files:
 
 
 This program supports the following parameters:
-+ **--blocklimit**: Set terms per merged index file, default is 5000
++ **--blocklimit**: Set terms per merged index file, default is 25000
 + **--prefix**: Set prefix for input files, default is "block". Input files are assumed to always end in .ssv
 + **--outputprefix**: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
 + **--masterfile**: "Master" output file name, default is "masterindex.ssv"
