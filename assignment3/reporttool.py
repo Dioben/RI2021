@@ -35,7 +35,8 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries,sizes,queryRepeats):
                "boost":{"precision":0,"recall":0,"fmeasure":0,"AP":0,"NDCG":0,"latency":0,"throughput":[]}} for x in sizes}
 
     queryCount = len(queries.keys())
-
+    maxSize = max(sizes)
+    
     for query,standard in queries.items():
         queryTimeNoBoostList = []
         queryTimeBoostList = []
@@ -59,17 +60,16 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries,sizes,queryRepeats):
                     pass
             
             results = scorefunc(termDocs, allDocs, metadata["totaldocs"], index)
-            top50Base = [metadata["realids"][doc] for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[0:50]]
+            topBase = [metadata["realids"][doc] for doc, score in sorted(results, key=lambda x: x[1], reverse=True)[:maxSize]]
             
             queryTimeNoBoost = perf_counter() - queryTime
             resultsBoost = BoostPosition(keywords,results,positions)
-            top50Boost = [ metadata["realids"][doc] for doc, score in sorted(resultsBoost, key=lambda x: x[1], reverse=True)[0:50]]
-            queryTimeBoost = perf_counter() -queryTime
+            topBoost = [metadata["realids"][doc] for doc, score in sorted(resultsBoost, key=lambda x: x[1], reverse=True)[:maxSize]]
+            queryTimeBoost = perf_counter() - queryTime
 
             queryTimeNoBoostList.append(queryTimeNoBoost)
             queryTimeBoostList.append(queryTimeBoost)
 
-        # Gonna do boosting for each set for more accurate timing
         for x in sizes:
     
             # Median query latency
@@ -80,7 +80,7 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries,sizes,queryRepeats):
             info[x]["normal"]["throughput"].extend(queryTimeNoBoostList)
             info[x]["boost"]["throughput"].extend(queryTimeBoostList)
 
-            for boost,results in [("normal",top50Base),("boost",top50Boost)]:
+            for boost,results in [("normal",topBase),("boost",topBoost)]:
                 top = set(results[:x])
                 
                 # Precision, recall and F-measure
@@ -96,7 +96,7 @@ def searchInfo(index,stemmer,metadata,scorefunc,queries,sizes,queryRepeats):
                 
                 # Average precision (AP)
                 avgprecision = 0
-                for limsize in range(1, x):
+                for limsize in range(1, x+1):
                     smallertop = set(results[:limsize])
                     avgprecision += len(smallertop.intersection(standard.keys()))/len(smallertop)
                 info[x][boost]["AP"] += avgprecision/x
@@ -142,8 +142,8 @@ if __name__=="__main__":
     parser.add_argument('--pos-window-size',type=int,default=10)
     parser.add_argument("--top",help="List of how many results to use",type=int,nargs="+",default=[10,20,50])
     parser.add_argument("--query-repeats",help="How many times each query is repeated",type=int,default=5)
-    parser.add_argument("--append",help="If results are to be appended to the file instead of overwriting", dest="append", action="store_true")
-    parser.add_argument("--no-normal",help="If the results without boost are written to the file", dest="normal", action="store_false")
+    parser.add_argument("--append",help="Makes it so results are appended to the file instead of overwriting", dest="append", action="store_true")
+    parser.add_argument("--no-normal",help="Makes it so results without boost aren't written to the file", dest="normal", action="store_false")
     parser.set_defaults(stem=True, bm25=True, append=False, normal=True)
     args = parser.parse_args()
 
