@@ -141,7 +141,7 @@ if __name__=="__main__":
     parser.add_argument("--results",help="Result storage file ",default="queryResults.csv")
     parser.add_argument('--pos-window-size',type=int,default=10)
     parser.add_argument("--top",help="List of how many results to use",type=int,nargs="+",default=[10,20,50])
-    parser.add_argument("--query-repeats",help="How many times each query is repeated",type=int,default=10)
+    parser.add_argument("--query-repeats",help="How many times each query is repeated",type=int,default=5)
     parser.add_argument("--append",help="If results are to be appended to the file instead of overwriting", dest="append", action="store_true")
     parser.add_argument("--no-normal",help="If the results without boost are written to the file", dest="normal", action="store_false")
     parser.set_defaults(stem=True, bm25=True, append=False, normal=True)
@@ -186,9 +186,3 @@ if __name__=="__main__":
             boostResults = [query, ranking, "boost", args.pos_window_size]
             boostResults.extend(list(results["boost"].values()))
             writer.writerow(boostResults)
-    
-    # python indexer.py --lenfilter 3 --prefix data/blockdump --no-stemmer --metadata data/stage1metadata.ssv --source ../amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz --stopsize 500
-    # python merger.py --prefix data/block --blocklimit 25000 --masterfile data/bm25/masterindex.ssv --outputprefix data/bm25/mergedindex --metadata data/stage1metadata.ssv --new-metadata data/bm25/stage2metadata.ssv
-    # python merger.py --prefix data/block --blocklimit 25000 --masterfile data/vector/masterindex.ssv --outputprefix data/vector/mergedindex --metadata data/stage1metadata.ssv --new-metadata data/vector/stage2metadata.ssv --vector
-    # python reporttool.py --masterfile data/bm25/masterindex.ssv --metadata data/stage1metadata.ssv --metadata2 data/bm25/stage2metadata.ssv --prefix data/bm25/mergedindex --no-stemmer --results queryResultsBM25.csv
-    # python reporttool.py --masterfile data/vector/masterindex.ssv --metadata data/stage1metadata.ssv --metadata2 data/vector/stage2metadata.ssv --prefix data/vector/mergedindex --no-stemmer --results queryResultsVector.csv --vector
