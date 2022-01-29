@@ -143,7 +143,8 @@ if __name__=="__main__":
     parser.add_argument("--top",help="List of how many results to use",type=int,nargs="+",default=[10,20,50])
     parser.add_argument("--query-repeats",help="How many times each query is repeated",type=int,default=10)
     parser.add_argument("--append",help="If results are to be appended to the file instead of overwriting", dest="append", action="store_true")
-    parser.set_defaults(stem=True, bm25=True, append=False)
+    parser.add_argument("--no-normal",help="If the results without boost are written to the file", dest="normal", action="store_false")
+    parser.set_defaults(stem=True, bm25=True, append=False, normal=True)
     args = parser.parse_args()
 
     if args.stem:
@@ -176,11 +177,15 @@ if __name__=="__main__":
         if not args.append:
             writer.writerow(["query","ranking","boost/normal","boost window","precision","recall","fmeasure","AP","NDCG","latency (s)","throughput (q/s)"])
         ranking = "bm25" if args.bm25 else "tf-idf"
+        if args.normal:
+            for query,results in info.items():
+                normalResults = [query, ranking, "normal", "not applicable"]
+                normalResults.extend(list(results["normal"].values()))
+                writer.writerow(normalResults)
         for query,results in info.items():
-            for boost in results.keys():
-                csvResults = [query, ranking, boost, args.pos_window_size]
-                csvResults.extend(list(results[boost].values()))
-                writer.writerow(csvResults)
+            boostResults = [query, ranking, "boost", args.pos_window_size]
+            boostResults.extend(list(results["boost"].values()))
+            writer.writerow(boostResults)
     
     # python indexer.py --lenfilter 3 --prefix data/blockdump --no-stemmer --metadata data/stage1metadata.ssv --source ../amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz --stopsize 500
     # python merger.py --prefix data/block --blocklimit 25000 --masterfile data/bm25/masterindex.ssv --outputprefix data/bm25/mergedindex --metadata data/stage1metadata.ssv --new-metadata data/bm25/stage2metadata.ssv

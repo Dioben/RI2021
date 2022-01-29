@@ -165,7 +165,7 @@ def BoostPositionPost(query,results,allPositions):
             
         combos.append(counter)
         comboScore = sum(combos)/len(combos)
-        resultsBoost[id]=(document, score*(1+math.log2(comboScore)/5))
+        resultsBoost[id]=(document, score*(1+math.log2(comboScore)/25))
     return resultsBoost
 
 if __name__=="__main__":
