@@ -96,9 +96,9 @@ Here are some values to help with comprehension of how this boost scales:
 |     2    |    1.04    |
 |     3    |   1.0634   |
 |     4    |    1.08    |
-|     5    |   1.0928   |
+|     5    |   1.0929   |
 |     6    |   1.1034   |
-|     7    |   1.1122   |
+|     7    |   1.1123   |
 |     8    |    1.12    |
 
 ## Results
