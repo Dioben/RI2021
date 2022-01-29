@@ -173,7 +173,7 @@ if __name__=="__main__":
 
     info = searchInfo(index,stemmer,metadata,scorefunc,queryDict,args.top,args.query_repeats)
     with open(args.results,"a" if args.append else "w") as f:
-        writer = csv.writer(f, delimiter="\t")
+        writer = csv.writer(f)
         if not args.append:
             writer.writerow(["query","ranking","boost/normal","boost window","precision","recall","fmeasure","AP","NDCG","latency (s)","throughput (q/s)"])
         ranking = "bm25" if args.bm25 else "tf-idf"

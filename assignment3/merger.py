@@ -157,7 +157,7 @@ def iterateAllFiles(current,currentwords): #checks all currently open files,
 if __name__=="__main__":
     parser= argparse.ArgumentParser()
     parser.add_argument("--prefix",help="prefix for data files",default="block")
-    parser.add_argument("--blocklimit",help="how many terms per output file",type=int,default=5000)
+    parser.add_argument("--blocklimit",help="how many terms per output file",type=int,default=25000)
     parser.add_argument("--masterfile",help="Master file name",default="masterindex.ssv")
     parser.add_argument("--outputprefix",help="prefix for non-master output files",default="mergedindex")
     parser.add_argument("--metadata",help="path to stage 1 metadata",default="stage1metadata.ssv")

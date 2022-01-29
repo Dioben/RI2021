@@ -172,7 +172,7 @@ if __name__=="__main__":
     parser.add_argument("--stopwords",help="stopword source, 'default' uses default list, alternatively you can use a file path to a csv file with stopwords"\
                                         , default="default")
     parser.add_argument("--stopword_delimiter",help="set the delimiter for your stopword file, default is comma",default=",")
-    parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=50)
+    parser.add_argument("--stopsize",help="Temporary index size limit in MB",type=int, default=100)
     
     parser.add_argument("--prefix",help="dump file prefix", default="blockdump") 
     #relevant columns
