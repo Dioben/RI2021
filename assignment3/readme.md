@@ -14,7 +14,7 @@ This program supports the following parameters:
 + **--stopwords**: Stopword source, a path to a csv file with stopwords.  
         Using 'default' will make the program use the default stopword list
 + **--stopword_delimiter**: Custom delimiter for the stopwords file, default is ","
-+ **--stopsize**: Set maximum list size before partitioning in megabytes, default value is 50
++ **--stopsize**: Set maximum list size before partitioning in megabytes, default value is 100
 + **--prefix**: Set prefix for output files, default is "blockdump". Output files will always end in .ssv
 + **--stemmer/no-stemmer**: sets whether to use Stemming. By default no stemmer is used.
 + **--source**: Input file location
@@ -39,7 +39,7 @@ This process leads to the generation of 3 types of files:
 
 
 This program supports the following parameters:
-+ **--blocklimit**: Set terms per merged index file, default is 5000
++ **--blocklimit**: Set terms per merged index file, default is 25000
 + **--prefix**: Set prefix for input files, default is "block". Input files are assumed to always end in .ssv
 + **--outputprefix**: Set prefix for output files, default is "mergedindex". Output files have the .ssv extension
 + **--masterfile**: "Master" output file name, default is "masterindex.ssv"
@@ -86,31 +86,39 @@ We then iterate the timeline in order to calculate "combos". As long as words ap
 Scores start out incrementing by 1 but this value ramps up with combo length in function of how well the combo matches the query sequence.  
 Failing to find a follow-up term within the window will cause the combo value to be scored and a new combo to be started.  
 
-At the end the average combo score is calculated and the original score is multiplied by 1 + log2(avgcombo)/5  
+At the end the average combo score is calculated and the original score is multiplied by 1 + log2(avgcombo)/25  
 
 Here are some values to help with comprehension of how this boost scales:
 
 | avgcombo | multiplier |
-|----------|------------|
+|:--------:|:----------:|
 |     1    |     1.0    |
-|     2    |     1.2    |
-|     3    |    1.317   |
-|     4    |     1.4    |
-|     5    |    1.464   |
-|     6    |    1.517   |
-|     7    |    1.561   |
-|     8    |     1.6    |
+|     2    |    1.04    |
+|     3    |   1.0634   |
+|     4    |    1.08    |
+|     5    |   1.0929   |
+|     6    |   1.1034   |
+|     7    |   1.1123   |
+|     8    |    1.12    |
 
 ## Results
-```diff
-- this whole thing is TODO
+The results for each query in the **queries.relevance.txt** file are in the **queryResults.csv** file.
+
+This CSV file has a column for each evaluation metric and 4 others depicting the number of top docs used (**query**), the ranking used (**ranking**), if the the results were boosted (**boost/normal**), and the boost window size used (**boost window**).
+
+The commands used to obtain this file are:
 ```
-The results for each query in the **queries.txt** file, using the BM25 and the vector space ranking file, are in the **queryResultsBM25.txt** and in the **queryResultsVector.txt** files respectively.  
-The commands used to obtain these files are:
-```
-python3 indexer.py --no-stemmer --stopsize 50 --source amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz
-python3 merger.py
-python3 reporttool.py --no-stemmer --results queryResultsBM25.txt
-python3 merger.py --vector
-python3 reporttool.py --no-stemmer --vector --results queryResultsVector.txt
+$ python indexer.py --lenfilter 3 --prefix data/blockdump --no-stemmer --metadata data/stage1metadata.ssv --source ../amazon_reviews_us_Digital_Music_Purchase_v1_00.tsv.gz
+
+$ python merger.py --prefix data/block --masterfile data/bm25/masterindex.ssv --outputprefix data/bm25/mergedindex --metadata data/stage1metadata.ssv --new-metadata data/bm25/stage2metadata.ssv
+
+$ python merger.py --prefix data/block --masterfile data/vector/masterindex.ssv --outputprefix data/vector/mergedindex --metadata data/stage1metadata.ssv --new-metadata data/vector/stage2metadata.ssv --vector
+
+$ python reporttool.py --masterfile data/bm25/masterindex.ssv --metadata data/stage1metadata.ssv --metadata2 data/bm25/stage2metadata.ssv --prefix data/bm25/mergedindex --no-stemmer --pos-window-size 1
+
+$ for i in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 25 30 35 40 45 50 100 150 200; do python reporttool.py --masterfile data/bm25/masterindex.ssv --metadata data/stage1metadata.ssv --metadata2 data/bm25/stage2metadata.ssv --prefix data/bm25/mergedindex --no-stemmer --append --no-normal --pos-window-size ${i}; done
+
+$ python reporttool.py --masterfile data/vector/masterindex.ssv --metadata data/stage1metadata.ssv --metadata2 data/vector/stage2metadata.ssv --prefix data/vector/mergedindex --no-stemmer --vector --pos-window-size 1 --append
+
+$ for i in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 25 30 35 40 45 50 100 150 200; do  python reporttool.py --masterfile data/vector/masterindex.ssv --metadata data/stage1metadata.ssv --metadata2 data/vector/stage2metadata.ssv --prefix data/vector/mergedindex --no-stemmer --vector --append --no-normal --pos-window-size ${i}; done
 ```
